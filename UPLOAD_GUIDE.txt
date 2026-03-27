@@ -1,0 +1,32 @@
+🚀 GitHub 上传步骤（2分钟完成）
+===============================
+
+步骤 1: 创建 GitHub 仓库
+------------------------
+1. 访问 https://github.com/new
+2. Repository name: beibei-training-portal
+3. 选择 Public
+4. 点击 Create repository
+
+步骤 2: 上传文件
+----------------
+1. 在新仓库页面，点击 "uploading an existing file"
+2. 拖拽或选择以下 3 个文件上传:
+   - beibei-training-portal.html
+   - README.md  
+   - .github/workflows/deploy.yml
+3. 点击 Commit changes
+
+步骤 3: 启用 GitHub Pages
+-------------------------
+1. 点击 Settings (顶部标签)
+2. 左侧点击 Pages
+3. Source 选择 "GitHub Actions"
+4. 等待 2-3 分钟
+
+步骤 4: 完成！
+-------------
+你的网站地址:
+https://beibie-nb666.github.io/beibei-training-portal
+
+有问题请联系北北！

@@ -1,0 +1,4355 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>北北新媒体工作室 - 主播培训与数据平台</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+    <style>
+        /* 全局样式 */
+        :root {
+            --color-space: #0a0e17;
+            --color-space-light: #13182c;
+            --color-neon-cyan: #00f3ff;
+            --color-neon-magenta: #ff00ff;
+            --color-neon-green: #00ff9d;
+            --color-text-primary: #ffffff;
+            --color-text-secondary: #b0b7d6;
+            --gradient-primary: linear-gradient(135deg, #0066ff, #00f3ff);
+            --gradient-accent: linear-gradient(135deg, #9d00ff, #ff00ff);
+            --glow-cyan: 0 0 15px rgba(0, 243, 255, 0.5);
+            --glow-magenta: 0 0 15px rgba(255, 0, 255, 0.5);
+            --font-heading: 'Orbitron', sans-serif;
+            --font-body: 'Inter', sans-serif;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: var(--font-body);
+            background: var(--color-space);
+            color: var(--color-text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+            line-height: 1.6;
+        }
+
+        /* 背景水印 */
+        .watermark {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(0, 243, 255, 0.03) 10px, rgba(0, 243, 255, 0.03) 20px);
+            z-index: -1;
+            opacity: 0.3;
+        }
+
+        .watermark-text {
+            position: fixed;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%) rotate(-30deg);
+            font-family: var(--font-heading);
+            font-size: 6vw;
+            font-weight: 900;
+            color: rgba(255, 255, 255, 0.05);
+            white-space: nowrap;
+            z-index: -1;
+            letter-spacing: 20px;
+            text-transform: uppercase;
+            user-select: none;
+            pointer-events: none;
+        }
+
+        /* 用户状态栏 */
+        .user-status-bar {
+            background: rgba(19, 24, 44, 0.8);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(0, 243, 255, 0.2);
+            padding: 10px 0;
+            position: sticky;
+            top: 0;
+            z-index: 1001;
+        }
+
+        .user-status-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--color-text-primary);
+        }
+
+        .user-info i { font-size: 1.2rem; color: var(--color-neon-cyan); }
+        .user-role {
+            background: rgba(0, 243, 255, 0.2);
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.8rem;
+        }
+
+        .auth-buttons { display: flex; gap: 10px; }
+
+        .auth-btn {
+            padding: 6px 15px;
+            border-radius: 6px;
+            border: none;
+            font-family: var(--font-body);
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .login-btn {
+            background: rgba(0, 243, 255, 0.1);
+            color: var(--color-neon-cyan);
+            border: 1px solid rgba(0, 243, 255, 0.3);
+        }
+
+        .register-btn {
+            background: rgba(157, 0, 255, 0.1);
+            color: var(--color-neon-magenta);
+            border: 1px solid rgba(157, 0, 255, 0.3);
+        }
+
+        .logout-btn {
+            background: rgba(255, 0, 94, 0.1);
+            color: #ff005e;
+            border: 1px solid rgba(255, 0, 94, 0.3);
+        }
+
+        .auth-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2); }
+
+        /* 容器 */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* 导航 */
+        .navbar {
+            background: rgba(19, 24, 44, 0.9);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(0, 243, 255, 0.3);
+            padding: 20px 0;
+            position: sticky;
+            top: 40px;
+            z-index: 1000;
+        }
+
+        .navbar-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .logo-icon {
+            font-size: 2rem;
+            color: var(--color-neon-cyan);
+            animation: pulse 2s infinite;
+        }
+
+        .logo-text h1 {
+            font-family: var(--font-heading);
+            font-size: 1.8rem;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .logo-text p {
+            font-size: 0.9rem;
+            color: var(--color-text-secondary);
+            letter-spacing: 2px;
+        }
+
+        .nav-links { display: flex; gap: 30px; }
+
+        .nav-link {
+            color: var(--color-text-primary);
+            text-decoration: none;
+            font-weight: 500;
+            padding: 10px 0;
+            position: relative;
+            transition: color 0.3s;
+        }
+
+        .nav-link:hover { color: var(--color-neon-cyan); }
+
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            bottom: 0; left: 0;
+            width: 0; height: 2px;
+            background: var(--gradient-primary);
+            transition: width 0.3s;
+        }
+
+        .nav-link:hover::after { width: 100%; }
+
+        /* 主标题区 */
+        .hero {
+            padding: 80px 0 60px;
+            text-align: center;
+        }
+
+        .hero h2 {
+            font-family: var(--font-heading);
+            font-size: 3rem;
+            margin-bottom: 20px;
+            background: var(--gradient-accent);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .hero p {
+            font-size: 1.2rem;
+            color: var(--color-text-secondary);
+            max-width: 800px;
+            margin: 0 auto 40px;
+        }
+
+        .usage-guide {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(0,243,255,0.1);
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid rgba(0,243,255,0.3);
+        }
+
+        .usage-guide h3 {
+            color: var(--color-neon-cyan);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .usage-guide p { margin-bottom: 10px; }
+
+        /* 功能区卡片 */
+        .section { margin-bottom: 80px; }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid rgba(0, 243, 255, 0.3);
+        }
+
+        .section-title {
+            font-family: var(--font-heading);
+            font-size: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .section-title i { color: var(--color-neon-cyan); }
+
+        .badge {
+            background: var(--gradient-primary);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+        }
+
+        .badge.accent { background: var(--gradient-accent); }
+        .badge.hot { background: linear-gradient(135deg, #ff005e, #ff9d00); }
+        .badge.optimize { background: linear-gradient(135deg, #00ff9d, #0066ff); }
+        .badge.cyan { background: rgba(0, 243, 255, 0.2); color: var(--color-neon-cyan); }
+        .badge.magenta { background: rgba(157, 0, 255, 0.2); color: var(--color-neon-magenta); }
+        .badge.green { background: rgba(0, 255, 157, 0.2); color: var(--color-neon-green); }
+
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px;
+        }
+
+        .card {
+            background: rgba(19, 24, 44, 0.7);
+            border-radius: 16px;
+            padding: 30px;
+            border: 1px solid rgba(0, 243, 255, 0.2);
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            border-color: var(--color-neon-cyan);
+            box-shadow: var(--glow-cyan);
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; height: 4px;
+            background: var(--gradient-primary);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .card-icon {
+            width: 50px; height: 50px;
+            background: rgba(0, 243, 255, 0.1);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: var(--color-neon-cyan);
+        }
+
+        .card-title {
+            font-family: var(--font-heading);
+            font-size: 1.5rem;
+            color: var(--color-text-primary);
+        }
+
+        .card-description {
+            color: var(--color-text-secondary);
+            margin-bottom: 25px;
+            line-height: 1.7;
+        }
+
+        /* 上传区域 */
+        .upload-zone {
+            border: 2px dashed rgba(0, 243, 255, 0.3);
+            border-radius: 12px;
+            padding: 40px;
+            text-align: center;
+            background: rgba(0, 243, 255, 0.05);
+            margin-bottom: 30px;
+            transition: all 0.3s;
+        }
+
+        .upload-zone:hover {
+            border-color: var(--color-neon-cyan);
+            background: rgba(0, 243, 255, 0.1);
+        }
+
+        .upload-zone.dragover {
+            border-color: var(--color-neon-cyan);
+            background: rgba(0, 243, 255, 0.15);
+            box-shadow: var(--glow-cyan);
+        }
+
+        .upload-zone.upload-success {
+            border-color: var(--color-neon-green);
+            background: rgba(0, 255, 157, 0.1);
+        }
+
+        .upload-zone.upload-error {
+            border-color: #ff005e;
+            background: rgba(255, 0, 94, 0.1);
+        }
+
+        .upload-icon {
+            font-size: 3rem;
+            color: var(--color-neon-cyan);
+            margin-bottom: 20px;
+        }
+
+        .upload-icon.success { color: var(--color-neon-green); }
+        .upload-icon.error { color: #ff005e; }
+
+        .upload-text h3 {
+            margin-bottom: 10px;
+            font-family: var(--font-heading);
+        }
+
+        .upload-text p {
+            color: var(--color-text-secondary);
+            margin-bottom: 20px;
+        }
+
+        .upload-info {
+            margin-top: 15px;
+            font-size: 0.9rem;
+            color: var(--color-neon-cyan);
+        }
+
+        .upload-info a {
+            color: var(--color-neon-green);
+            text-decoration: none;
+        }
+
+        .upload-info a:hover { text-decoration: underline; }
+
+        .file-input { display: none; }
+
+        .upload-btn {
+            background: var(--gradient-primary);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-family: var(--font-body);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .upload-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--glow-cyan);
+        }
+
+        /* 进度条 */
+        .progress-bar {
+            width: 100%;
+            max-width: 300px;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            overflow: hidden;
+            margin: 15px auto 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--gradient-primary);
+            border-radius: 3px;
+            transition: width 0.3s;
+            width: 0%;
+        }
+
+        /* 数据表格 */
+        .table-wrapper {
+            overflow-x: auto;
+            margin-top: 20px;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: rgba(19, 24, 44, 0.5);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .data-table th {
+            background: rgba(0, 243, 255, 0.2);
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            color: var(--color-neon-cyan);
+            border-bottom: 2px solid rgba(0, 243, 255, 0.3);
+        }
+
+        .data-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .data-table tr:hover { background: rgba(0, 243, 255, 0.1); }
+
+        /* 表格状态徽章 */
+        .rate-badge {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .rate-high { background: rgba(0, 255, 157, 0.2); color: var(--color-neon-green); }
+        .rate-medium { background: rgba(0, 243, 255, 0.2); color: var(--color-neon-cyan); }
+        .rate-low { background: rgba(255, 0, 94, 0.2); color: #ff005e; }
+
+        .leads-badge {
+            background: rgba(157, 0, 255, 0.2);
+            color: var(--color-neon-magenta);
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-weight: 500;
+        }
+
+        .table-more {
+            text-align: center;
+            color: var(--color-text-secondary);
+            padding: 20px;
+        }
+
+        .no-data-tip {
+            text-align: center;
+            color: var(--color-text-secondary);
+            padding: 40px 20px;
+        }
+
+        /* 图表容器 */
+        .charts-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 30px;
+            margin-top: 30px;
+        }
+
+        .charts-container .chart-box.wide {
+            grid-column: 1 / -1;
+        }
+
+        /* KPI卡片网格 */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .kpi-card {
+            background: rgba(19, 24, 44, 0.8);
+            border: 1px solid rgba(0, 243, 255, 0.3);
+            border-radius: 16px;
+            padding: 25px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            transition: all 0.3s;
+        }
+
+        .kpi-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--color-neon-cyan);
+            box-shadow: var(--glow-cyan);
+        }
+
+        .kpi-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .kpi-content {
+            flex: 1;
+        }
+
+        .kpi-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--color-text-primary);
+            font-family: var(--font-heading);
+        }
+
+        .kpi-label {
+            font-size: 0.9rem;
+            color: var(--color-text-secondary);
+            margin-top: 5px;
+        }
+
+        .kpi-change {
+            font-size: 0.8rem;
+            margin-top: 8px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .kpi-change.positive {
+            color: var(--color-neon-green);
+        }
+
+        .kpi-change.negative {
+            color: #ff6b6b;
+        }
+
+        /* 主播排名样式 */
+        .anchor-rank-item {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            padding: 20px;
+            background: rgba(19, 24, 44, 0.5);
+            border-radius: 12px;
+            margin-bottom: 15px;
+            border: 1px solid rgba(0, 243, 255, 0.1);
+            transition: all 0.3s;
+        }
+
+        .anchor-rank-item:hover {
+            border-color: rgba(0, 243, 255, 0.3);
+        }
+
+        .anchor-rank {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.2rem;
+            font-family: var(--font-heading);
+        }
+
+        .anchor-rank.top3 {
+            background: linear-gradient(135deg, #ffd700, #ffaa00);
+            color: #000;
+        }
+
+        .anchor-rank.normal {
+            background: rgba(0, 243, 255, 0.2);
+            color: var(--color-neon-cyan);
+        }
+
+        .anchor-info {
+            flex: 1;
+        }
+
+        .anchor-name {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--color-text-primary);
+        }
+
+        .anchor-stats {
+            display: flex;
+            gap: 20px;
+            margin-top: 8px;
+            font-size: 0.9rem;
+            color: var(--color-text-secondary);
+        }
+
+        .anchor-score {
+            text-align: right;
+        }
+
+        .score-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--color-neon-cyan);
+            font-family: var(--font-heading);
+        }
+
+        .score-label {
+            font-size: 0.8rem;
+            color: var(--color-text-secondary);
+        }
+
+        /* 洞察卡片 */
+        .insight-item {
+            background: rgba(0, 0, 0, 0.3);
+            border-left: 4px solid var(--color-neon-cyan);
+            padding: 15px 20px;
+            border-radius: 0 8px 8px 0;
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+        }
+
+        .insight-icon {
+            color: var(--color-neon-cyan);
+            font-size: 1.2rem;
+            margin-top: 2px;
+        }
+
+        .insight-content {
+            flex: 1;
+        }
+
+        .insight-title {
+            font-weight: 600;
+            color: var(--color-text-primary);
+            margin-bottom: 5px;
+        }
+
+        .insight-desc {
+            font-size: 0.9rem;
+            color: var(--color-text-secondary);
+            line-height: 1.5;
+        }
+
+        .chart-box {
+            background: rgba(19, 24, 44, 0.7);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid rgba(0, 243, 255, 0.2);
+        }
+
+        .chart-title {
+            font-family: var(--font-heading);
+            margin-bottom: 15px;
+            color: var(--color-neon-cyan);
+            font-size: 1.2rem;
+        }
+
+        /* 动态网格 */
+        .dynamics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+        }
+
+        .dynamic-card {
+            background: rgba(19, 24, 44, 0.7);
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid rgba(0, 243, 255, 0.2);
+            transition: all 0.3s;
+        }
+
+        .dynamic-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--color-neon-cyan);
+            box-shadow: var(--glow-cyan);
+        }
+
+        .dynamic-image {
+            height: 180px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            color: white;
+            background: linear-gradient(45deg, #0066ff, #00f3ff);
+        }
+
+        .dynamic-image.trend { background: linear-gradient(45deg, #0066ff, #00f3ff); }
+        .dynamic-image.video { background: linear-gradient(45deg, #ff005e, #ff9d00); }
+        .dynamic-image.innovation { background: linear-gradient(45deg, #00ff9d, #0066ff); }
+        .dynamic-image.competitor { background: linear-gradient(45deg, #9d00ff, #ff00ff); }
+
+        .dynamic-content { padding: 20px; }
+
+        .dynamic-title {
+            font-family: var(--font-heading);
+            margin-bottom: 10px;
+            font-size: 1.2rem;
+        }
+
+        .dynamic-description {
+            color: var(--color-text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 15px;
+            line-height: 1.6;
+        }
+
+        .dynamic-meta {
+            display: flex;
+            justify-content: space-between;
+            color: var(--color-neon-cyan);
+            font-size: 0.8rem;
+        }
+
+        /* 动态管理 */
+        .frequency-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .frequency-item {
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        .frequency-item.daily {
+            background: rgba(0, 243, 255, 0.1);
+            border: 1px solid rgba(0, 243, 255, 0.3);
+        }
+
+        .frequency-item.weekly {
+            background: rgba(157, 0, 255, 0.1);
+            border: 1px solid rgba(157, 0, 255, 0.3);
+        }
+
+        .frequency-item.monthly {
+            background: rgba(0, 255, 157, 0.1);
+            border: 1px solid rgba(0, 255, 157, 0.3);
+        }
+
+        .frequency-item h4 { margin-bottom: 5px; }
+        .frequency-item.daily h4 { color: var(--color-neon-cyan); }
+        .frequency-item.weekly h4 { color: var(--color-neon-magenta); }
+        .frequency-item.monthly h4 { color: var(--color-neon-green); }
+        .frequency-item p { color: var(--color-text-secondary); font-size: 0.9rem; }
+
+        /* 建议区域 */
+        .suggestions {
+            background: rgba(157, 0, 255, 0.1);
+            border: 1px solid rgba(157, 0, 255, 0.3);
+            border-radius: 12px;
+            padding: 30px;
+            margin-top: 40px;
+        }
+
+        .suggestions h3 {
+            color: var(--color-neon-magenta);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .suggestions > p { color: var(--color-text-secondary); margin-bottom: 20px; }
+
+        .suggestion-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .suggestion-item:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+
+        .suggestion-icon {
+            color: var(--color-neon-magenta);
+            font-size: 1.5rem;
+            margin-top: 5px;
+        }
+
+        .suggestion-content h4 {
+            margin-bottom: 5px;
+            font-family: var(--font-heading);
+        }
+
+        .suggestion-content p { color: var(--color-text-secondary); font-size: 0.9rem; }
+
+        /* 功能按钮 */
+        .feature-buttons {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .feature-btn {
+            padding: 12px 20px;
+            border-radius: 8px;
+            border: none;
+            font-family: var(--font-body);
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .api-btn { background: rgba(0, 243, 255, 0.1); color: var(--color-neon-cyan); border: 1px solid var(--color-neon-cyan); }
+        .app-btn { background: rgba(157, 0, 255, 0.1); color: var(--color-neon-magenta); border: 1px solid var(--color-neon-magenta); }
+        .report-btn { background: rgba(0, 255, 157, 0.1); color: var(--color-neon-green); border: 1px solid var(--color-neon-green); }
+        .other-btn { background: rgba(255, 0, 94, 0.1); color: #ff005e; border: 1px solid #ff005e; }
+        .feature-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2); }
+
+        /* 页脚 */
+        .footer {
+            background: rgba(19, 24, 44, 0.9);
+            border-top: 1px solid rgba(0, 243, 255, 0.3);
+            padding: 40px 0;
+            margin-top: 80px;
+        }
+
+        .footer-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .footer-logo h3 {
+            font-family: var(--font-heading);
+            margin-bottom: 10px;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .footer-logo p { color: var(--color-text-secondary); font-size: 0.9rem; }
+
+        .share-link {
+            margin-top: 10px;
+            font-size: 0.8rem;
+            color: var(--color-text-secondary);
+        }
+
+        .share-link span { color: var(--color-neon-cyan); }
+
+        .footer-contact { text-align: right; }
+
+        .footer-contact p {
+            margin-bottom: 10px;
+            color: var(--color-text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            justify-content: flex-end;
+        }
+
+        #dataStatus { color: var(--color-neon-green); font-weight: 500; }
+        #dataStatus.status-active { color: var(--color-neon-cyan); }
+
+        /* 模态框 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.8);
+            z-index: 10000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: var(--color-space-light);
+            padding: 30px;
+            border-radius: 16px;
+            max-width: 500px;
+            width: 90%;
+            border: 1px solid var(--color-neon-cyan);
+        }
+
+        .modal-content h3 {
+            color: var(--color-neon-cyan);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .form-group { margin-bottom: 20px; }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--color-text-secondary);
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(0,243,255,0.3);
+            border-radius: 8px;
+            color: white;
+            font-family: var(--font-body);
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+
+        .modal-btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-family: var(--font-body);
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .cancel-btn {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+        }
+
+        .submit-btn {
+            background: var(--gradient-primary);
+            border: none;
+            color: white;
+        }
+
+        .modal-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2); }
+        .modal-note {
+            margin-top: 15px;
+            color: var(--color-text-secondary);
+            font-size: 0.8rem;
+            text-align: center;
+        }
+
+        /* PWA安装提示 */
+        .pwa-install {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(19, 24, 44, 0.95);
+            border: 1px solid var(--color-neon-cyan);
+            border-radius: 12px;
+            padding: 15px;
+            max-width: 350px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            z-index: 1001;
+            display: none;
+        }
+
+        .pwa-content {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .pwa-content i { font-size: 2rem; color: var(--color-neon-cyan); }
+
+        .pwa-text { flex: 1; }
+
+        .pwa-text h4 {
+            margin-bottom: 5px;
+            font-family: var(--font-heading);
+            color: var(--color-neon-cyan);
+        }
+
+        .pwa-text p { color: var(--color-text-secondary); font-size: 0.9rem; }
+
+        .pwa-btn {
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-family: var(--font-body);
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: none;
+        }
+
+        .pwa-btn.install-btn { background: var(--gradient-primary); color: white; }
+        .pwa-btn.cancel-btn { background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.3); }
+        .pwa-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2); }
+
+        /* 动画 */
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .fade-in { animation: fadeIn 0.6s ease-out; }
+
+        /* 响应式 */
+        @media (max-width: 768px) {
+            .user-status-content { flex-direction: column; gap: 10px; }
+            .navbar { top: 80px; }
+            .navbar-content { flex-direction: column; gap: 20px; }
+            .nav-links { flex-wrap: wrap; justify-content: center; }
+            .hero h2 { font-size: 2rem; }
+            .cards-grid { grid-template-columns: 1fr; }
+            .charts-container { grid-template-columns: 1fr; }
+            .charts-container .chart-box.wide { grid-column: 1; }
+            .dynamics-grid { grid-template-columns: 1fr; }
+            .feature-buttons { flex-direction: column; }
+            .footer-content { flex-direction: column; text-align: center; gap: 30px; }
+            .footer-contact { text-align: center; }
+            .footer-contact p { justify-content: center; }
+            .frequency-grid { grid-template-columns: 1fr; }
+            .pwa-install { left: 20px; right: 20px; max-width: none; }
+            .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+            .kpi-card { padding: 15px; }
+            .kpi-value { font-size: 1.5rem; }
+            .anchor-rank-item { flex-wrap: wrap; }
+            .anchor-stats { flex-wrap: wrap; }
+        }
+
+        @media (max-width: 480px) {
+            .section-title { font-size: 1.5rem; }
+            .card { padding: 20px; }
+            .upload-zone { padding: 20px; }
+            .modal-content { padding: 20px; }
+        }
+
+        /* ===== 1. 直播排班管理样式 ===== */
+        .schedule-calendar { overflow-x: auto; }
+        .schedule-week {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 10px;
+            min-width: 800px;
+        }
+        .schedule-day {
+            background: rgba(19, 24, 44, 0.5);
+            border-radius: 12px;
+            padding: 15px;
+            min-height: 200px;
+            border: 1px solid rgba(0, 243, 255, 0.1);
+        }
+        .schedule-day.today {
+            border-color: var(--color-neon-cyan);
+            box-shadow: var(--glow-cyan);
+        }
+        .schedule-day.weekend {
+            background: rgba(255, 0, 255, 0.05);
+        }
+        .day-header {
+            text-align: center;
+            font-weight: 600;
+            color: var(--color-text-primary);
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .day-header small {
+            color: var(--color-text-secondary);
+            font-weight: 400;
+        }
+        .day-slots {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .schedule-slot {
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .schedule-slot:hover {
+            transform: scale(1.05);
+        }
+        .schedule-slot.morning {
+            background: rgba(0, 243, 255, 0.2);
+            color: #00f3ff;
+        }
+        .schedule-slot.afternoon {
+            background: rgba(255, 215, 0, 0.2);
+            color: #ffd700;
+        }
+        .schedule-slot.evening {
+            background: rgba(0, 255, 157, 0.2);
+            color: #00ff9d;
+        }
+        .schedule-slot.hot {
+            animation: pulse 2s infinite;
+            border: 1px solid #ff6b6b;
+        }
+        .schedule-slot.rest {
+            background: rgba(255,255,255,0.05);
+            color: var(--color-text-secondary);
+        }
+        .schedule-slot span {
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        /* ===== 2. 话术评分系统样式 ===== */
+        .score-ring {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: conic-gradient(var(--ring-color, #00f3ff) calc(var(--score) * 1%), rgba(255,255,255,0.1) 0);
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        .score-ring::before {
+            content: '';
+            position: absolute;
+            width: 90px;
+            height: 90px;
+            background: var(--color-space);
+            border-radius: 50%;
+        }
+        .score-value-display {
+            position: relative;
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--ring-color, #00f3ff);
+            font-family: var(--font-heading);
+        }
+        .score-details { margin-top: 20px; }
+        .score-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 10px 0;
+            font-size: 0.9rem;
+        }
+        .score-item span:first-child {
+            width: 80px;
+            color: var(--color-text-secondary);
+        }
+        .score-bar {
+            flex: 1;
+            height: 8px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .score-bar div {
+            height: 100%;
+            background: var(--color-neon-cyan);
+            border-radius: 4px;
+            transition: width 1s ease;
+        }
+        .suggestion-comparison {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            gap: 20px;
+            align-items: center;
+        }
+        .comparison-item {
+            background: rgba(19, 24, 44, 0.5);
+            padding: 20px;
+            border-radius: 12px;
+        }
+        .comparison-label {
+            font-size: 0.8rem;
+            color: var(--color-text-secondary);
+            margin-bottom: 10px;
+        }
+        .comparison-text {
+            padding: 15px;
+            border-radius: 8px;
+            line-height: 1.6;
+        }
+        .comparison-text.weak {
+            background: rgba(255, 107, 107, 0.1);
+            border-left: 3px solid #ff6b6b;
+        }
+        .comparison-text.strong {
+            background: rgba(0, 255, 157, 0.1);
+            border-left: 3px solid var(--color-neon-green);
+        }
+        .comparison-arrow {
+            color: var(--color-neon-cyan);
+            font-size: 1.5rem;
+        }
+
+        /* ===== 3. 主播成长体系样式 ===== */
+        .level-badge {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            margin: 0 auto;
+            border: 3px solid;
+        }
+        .level-badge.bronze {
+            background: linear-gradient(135deg, #cd7f32, #8b4513);
+            border-color: #cd7f32;
+            color: white;
+        }
+        .level-badge.silver {
+            background: linear-gradient(135deg, #c0c0c0, #808080);
+            border-color: #c0c0c0;
+            color: white;
+        }
+        .level-badge.gold {
+            background: linear-gradient(135deg, #ffd700, #ffaa00);
+            border-color: #ffd700;
+            color: #000;
+        }
+        .level-badge.platinum {
+            background: linear-gradient(135deg, #e5e4e2, #a0a0a0);
+            border-color: #e5e4e2;
+            color: #000;
+        }
+        .level-requirements {
+            list-style: none;
+            padding: 0;
+            margin: 20px 0;
+        }
+        .level-requirements li {
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            font-size: 0.9rem;
+        }
+        .level-requirements li i {
+            margin-right: 8px;
+            color: var(--color-neon-green);
+        }
+        .level-progress {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .level-progress .progress-bar {
+            flex: 1;
+            height: 10px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        .level-progress .progress-bar div {
+            height: 100%;
+            background: linear-gradient(90deg, var(--color-neon-cyan), var(--color-neon-green));
+            border-radius: 5px;
+            transition: width 1s ease;
+        }
+        .task-list { display: flex; flex-direction: column; gap: 15px; }
+        .task-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px;
+            background: rgba(19, 24, 44, 0.5);
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .task-item.completed { border-color: rgba(0, 255, 157, 0.3); }
+        .task-item.in-progress { border-color: rgba(0, 243, 255, 0.3); }
+        .task-checkbox {
+            width: 24px;
+            height: 24px;
+            border: 2px solid var(--color-text-secondary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .task-item.completed .task-checkbox {
+            background: var(--color-neon-green);
+            border-color: var(--color-neon-green);
+            color: #000;
+        }
+        .task-item.in-progress .task-checkbox {
+            border-color: var(--color-neon-cyan);
+            border-style: dashed;
+        }
+        .task-content { flex: 1; }
+        .task-title { font-weight: 600; }
+        .task-desc { font-size: 0.85rem; color: var(--color-text-secondary); margin-top: 3px; }
+        .task-reward {
+            background: rgba(0, 243, 255, 0.1);
+            color: var(--color-neon-cyan);
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+        }
+
+        /* ===== 4. 实时预警中心样式 ===== */
+        .alert-summary {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+        .alert-card {
+            background: rgba(19, 24, 44, 0.8);
+            border-radius: 16px;
+            padding: 25px;
+            text-align: center;
+            border: 2px solid;
+            transition: all 0.3s;
+        }
+        .alert-card.critical {
+            border-color: #ff6b6b;
+            background: rgba(255, 107, 107, 0.1);
+        }
+        .alert-card.warning {
+            border-color: #ffd700;
+            background: rgba(255, 215, 0, 0.1);
+        }
+        .alert-card.info {
+            border-color: var(--color-neon-cyan);
+            background: rgba(0, 243, 255, 0.1);
+        }
+        .alert-icon {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        .alert-card.critical .alert-icon { color: #ff6b6b; }
+        .alert-card.warning .alert-icon { color: #ffd700; }
+        .alert-card.info .alert-icon { color: var(--color-neon-cyan); }
+        .alert-count {
+            font-size: 2.5rem;
+            font-weight: 700;
+            font-family: var(--font-heading);
+        }
+        .alert-card.critical .alert-count { color: #ff6b6b; }
+        .alert-card.warning .alert-count { color: #ffd700; }
+        .alert-card.info .alert-count { color: var(--color-neon-cyan); }
+        .alert-label {
+            color: var(--color-text-secondary);
+            margin-top: 5px;
+        }
+        .alert-list { display: flex; flex-direction: column; gap: 15px; }
+        .alert-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+            padding: 20px;
+            background: rgba(19, 24, 44, 0.5);
+            border-radius: 12px;
+            border-left: 4px solid;
+        }
+        .alert-item.critical { border-left-color: #ff6b6b; }
+        .alert-item.warning { border-left-color: #ffd700; }
+        .alert-item.info { border-left-color: var(--color-neon-cyan); }
+        .alert-status {
+            font-size: 1.5rem;
+            flex-shrink: 0;
+        }
+        .alert-item.critical .alert-status { color: #ff6b6b; }
+        .alert-item.warning .alert-status { color: #ffd700; }
+        .alert-item.info .alert-status { color: var(--color-neon-cyan); }
+        .alert-content { flex: 1; }
+        .alert-title { font-weight: 600; font-size: 1.1rem; margin-bottom: 5px; }
+        .alert-desc { color: var(--color-text-secondary); font-size: 0.9rem; }
+        .alert-time {
+            font-size: 0.8rem;
+            color: var(--color-text-secondary);
+            margin-top: 8px;
+        }
+        .alert-actions { display: flex; gap: 10px; }
+        .alert-btn {
+            background: rgba(0, 243, 255, 0.1);
+            border: 1px solid rgba(0, 243, 255, 0.3);
+            color: var(--color-neon-cyan);
+            padding: 8px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .alert-btn:hover {
+            background: rgba(0, 243, 255, 0.2);
+        }
+
+        /* ===== 5. 知识库系统样式 ===== */
+        .knowledge-search { margin-bottom: 30px; }
+        .search-box {
+            display: flex;
+            background: rgba(19, 24, 44, 0.8);
+            border: 1px solid rgba(0, 243, 255, 0.3);
+            border-radius: 50px;
+            padding: 5px;
+            align-items: center;
+        }
+        .search-box i {
+            color: var(--color-text-secondary);
+            margin-left: 20px;
+        }
+        .search-box input {
+            flex: 1;
+            background: none;
+            border: none;
+            color: var(--color-text-primary);
+            padding: 15px 20px;
+            font-size: 1rem;
+            outline: none;
+        }
+        .search-box input::placeholder {
+            color: var(--color-text-secondary);
+        }
+        .search-btn {
+            background: var(--gradient-primary);
+            border: none;
+            color: white;
+            padding: 12px 30px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        .search-btn:hover {
+            transform: scale(1.05);
+            box-shadow: var(--glow-cyan);
+        }
+        .knowledge-categories {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 25px;
+        }
+        .category-btn {
+            background: rgba(19, 24, 44, 0.5);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: var(--color-text-secondary);
+            padding: 10px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .category-btn:hover, .category-btn.active {
+            background: rgba(0, 243, 255, 0.2);
+            border-color: var(--color-neon-cyan);
+            color: var(--color-neon-cyan);
+        }
+        .knowledge-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .knowledge-card {
+            background: rgba(19, 24, 44, 0.5);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .knowledge-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(0, 243, 255, 0.3);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        .knowledge-tag {
+            display: inline-block;
+            background: rgba(0, 243, 255, 0.2);
+            color: var(--color-neon-cyan);
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            margin-bottom: 10px;
+        }
+        .knowledge-card h4 {
+            color: var(--color-text-primary);
+            margin-bottom: 10px;
+        }
+        .knowledge-card p {
+            color: var(--color-text-secondary);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+        .knowledge-meta {
+            display: flex;
+            gap: 15px;
+            margin-top: 15px;
+            font-size: 0.8rem;
+            color: var(--color-text-secondary);
+        }
+        .hot-topics { display: flex; flex-direction: column; gap: 15px; }
+        .hot-topic-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px;
+            background: rgba(19, 24, 44, 0.5);
+            border-radius: 10px;
+        }
+        .hot-rank {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #ff6b6b, #ee5a6f);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.9rem;
+        }
+        .hot-title { flex: 1; font-weight: 500; }
+        .hot-views {
+            color: #ff6b6b;
+            font-size: 0.85rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- 背景水印 -->
+    <div class="watermark"></div>
+    <div class="watermark-text">北北新媒体工作室</div>
+
+    <!-- 用户状态栏 -->
+    <div id="userStatusBar" class="user-status-bar">
+        <div class="container">
+            <div class="user-status-content">
+                <div class="user-info" id="userInfo" style="display: none;">
+                    <i class="fas fa-user-circle"></i>
+                    <span id="userName"></span>
+                    <span class="user-role" id="userRole"></span>
+                </div>
+                <div class="auth-buttons" id="authButtons">
+                    <button class="auth-btn login-btn" onclick="showLoginModal()">
+                        <i class="fas fa-sign-in-alt"></i> 登录
+                    </button>
+                    <button class="auth-btn register-btn" onclick="showRegisterModal()">
+                        <i class="fas fa-user-plus"></i> 注册
+                    </button>
+                </div>
+                <button class="auth-btn logout-btn" id="logoutBtn" onclick="logout()" style="display: none;">
+                    <i class="fas fa-sign-out-alt"></i> 退出
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 导航栏 -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="navbar-content">
+                <div class="logo">
+                    <div class="logo-icon">
+                        <i class="fas fa-satellite-dish"></i>
+                    </div>
+                    <div class="logo-text">
+                        <h1>北北新媒体工作室</h1>
+                        <p>主播培训与数据智能平台</p>
+                    </div>
+                </div>
+                <div class="nav-links">
+                    <a href="#training" class="nav-link"><i class="fas fa-graduation-cap"></i> 培训资料</a>
+                    <a href="#data" class="nav-link"><i class="fas fa-chart-bar"></i> 直播数据</a>
+                    <a href="#schedule" class="nav-link"><i class="fas fa-calendar-alt"></i> 排班</a>
+                    <a href="#scoring" class="nav-link"><i class="fas fa-microphone-alt"></i> 评分</a>
+                    <a href="#growth" class="nav-link"><i class="fas fa-medal"></i> 成长</a>
+                    <a href="#alerts" class="nav-link"><i class="fas fa-bell"></i> 预警</a>
+                    <a href="#knowledge" class="nav-link"><i class="fas fa-book-open"></i> 知识库</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主标题区 -->
+    <header class="hero">
+        <div class="container">
+            <h2>主播成长加速器</h2>
+            <p>一站式培训平台，整合话术资料、直播数据分析和同行动态，助力主播快速提升专业能力与直播效果</p>
+            <div class="fade-in usage-guide">
+                <h3><i class="fas fa-info-circle"></i> 使用指南</h3>
+                <p>1. <strong>培训资料区</strong>：下载或在线学习主播话术与技巧</p>
+                <p>2. <strong>数据上传区</strong>：上传直播数据Excel文件，自动生成可视化报告</p>
+                <p>3. <strong>同行动态区</strong>：了解行业最新爆款视频与趋势</p>
+                <p>💡 只需分享本页面链接，主播即可开始学习！</p>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <!-- 培训资料区 -->
+        <section id="training" class="section">
+            <div class="section-header">
+                <h2 class="section-title"><i class="fas fa-graduation-cap"></i> 培训资料库</h2>
+                <span class="badge">3个文件</span>
+            </div>
+
+            <div class="cards-grid" id="trainingMaterials">
+                <div class="card fade-in">
+                    <div class="card-header">
+                        <div class="card-icon"><i class="fas fa-file-word"></i></div>
+                        <h3 class="card-title">主播话术手册</h3>
+                    </div>
+                    <p class="card-description">包含开场白、产品介绍、互动话术、促单技巧等完整话术体系，针对空压机行业特点优化。</p>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button class="upload-btn" onclick="previewManual('anchor')" style="flex: 1; min-width: 100px;"><i class="fas fa-eye"></i> 在线预览</button>
+                        <a href="https://drive.google.com/file/d/1主播话术手册/view" class="upload-btn" style="flex: 1; min-width: 100px; text-align: center; text-decoration: none;" download><i class="fas fa-download"></i> 下载原版</a>
+                    </div>
+                </div>
+                <div class="card fade-in">
+                    <div class="card-header">
+                        <div class="card-icon"><i class="fas fa-file-word"></i></div>
+                        <h3 class="card-title">客服话术手册</h3>
+                    </div>
+                    <p class="card-description">售后咨询、问题解答、客户维护标准化话术，提升客服专业度与客户满意度。</p>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button class="upload-btn" onclick="previewManual('service')" style="flex: 1; min-width: 100px;"><i class="fas fa-eye"></i> 在线预览</button>
+                        <a href="https://drive.google.com/file/d/1客服话术手册/view" class="upload-btn" style="flex: 1; min-width: 100px; text-align: center; text-decoration: none;" download><i class="fas fa-download"></i> 下载原版</a>
+                    </div>
+                </div>
+                <div class="card fade-in">
+                    <div class="card-header">
+                        <div class="card-icon"><i class="fas fa-file-powerpoint"></i></div>
+                        <h3 class="card-title">直播培训PPT</h3>
+                    </div>
+                    <p class="card-description">直播流程、设备设置、画面构图、互动技巧全面培训课件，适合新人系统学习。</p>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button class="upload-btn" onclick="previewPPT()" style="flex: 1; min-width: 100px;"><i class="fas fa-eye"></i> 在线预览</button>
+                        <a href="https://drive.google.com/file/d/1直播培训PPT/view" class="upload-btn" style="flex: 1; min-width: 100px; text-align: center; text-decoration: none;" download><i class="fas fa-download"></i> 下载原版</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="suggestions fade-in">
+                <h3><i class="fas fa-plus-circle"></i> 更多资料建议</h3>
+                <p>您还可以添加以下资料丰富培训体系：</p>
+                <div class="materials-list" id="trainingSuggestions">
+                    <!-- 通过JS动态加载 -->
+                </div>
+            </div>
+        </section>
+
+        <!-- 直播数据区 -->
+        <section id="data" class="section">
+            <div class="section-header">
+                <h2 class="section-title"><i class="fas fa-chart-bar"></i> 直播数据分析</h2>
+                <span class="badge accent">实时数据</span>
+            </div>
+
+            <!-- KPI概览卡片 -->
+            <div class="kpi-grid fade-in" id="kpiCards">
+                <div class="kpi-card">
+                    <div class="kpi-icon" style="background: linear-gradient(135deg, #00f3ff, #0066ff);"><i class="fas fa-users"></i></div>
+                    <div class="kpi-content">
+                        <div class="kpi-value" id="totalViews">52,847</div>
+                        <div class="kpi-label">总观看人数</div>
+                        <div class="kpi-change positive"><i class="fas fa-arrow-up"></i> 3月累计</div>
+                    </div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-icon" style="background: linear-gradient(135deg, #00ff9d, #00cc7a);"><i class="fas fa-address-card"></i></div>
+                    <div class="kpi-content">
+                        <div class="kpi-value" id="totalLeads">544</div>
+                        <div class="kpi-label">总留资数</div>
+                        <div class="kpi-change positive"><i class="fas fa-arrow-up"></i> 场均3.9条</div>
+                    </div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-icon" style="background: linear-gradient(135deg, #ff00ff, #9d00ff);"><i class="fas fa-yen-sign"></i></div>
+                    <div class="kpi-content">
+                        <div class="kpi-value" id="avgCost">¥103</div>
+                        <div class="kpi-label">平均获客成本</div>
+                        <div class="kpi-change" style="color: var(--color-neon-cyan);"><i class="fas fa-chart-line"></i> 低于目标</div>
+                    </div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-icon" style="background: linear-gradient(135deg, #ff6b6b, #ee5a6f);"><i class="fas fa-fire"></i></div>
+                    <div class="kpi-content">
+                        <div class="kpi-value" id="bestAnchor">王浩宇</div>
+                        <div class="kpi-label">最佳主播</div>
+                        <div class="kpi-change positive"><i class="fas fa-crown"></i> 167条留资</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 数据可视化大屏 -->
+            <div class="card fade-in" style="margin-top: 30px;">
+                <div class="card-header">
+                    <div class="card-icon"><i class="fas fa-chart-line"></i></div>
+                    <h3 class="card-title">数据趋势看板</h3>
+                </div>
+
+                <!-- 趋势图表 -->
+                <div class="charts-container" style="margin-top: 20px;">
+                    <div class="chart-box wide">
+                        <h4 class="chart-title">📈 每日观看人数与留资趋势（3月1日-26日）</h4>
+                        <canvas id="trendChart" height="120"></canvas>
+                    </div>
+                </div>
+
+                <div class="charts-container" style="margin-top: 30px;">
+                    <div class="chart-box">
+                        <h4 class="chart-title">👥 主播留资数量对比</h4>
+                        <canvas id="anchorLeadsChart"></canvas>
+                    </div>
+                    <div class="chart-box">
+                        <h4 class="chart-title">💰 主播获客成本对比</h4>
+                        <canvas id="anchorCostChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="charts-container" style="margin-top: 30px;">
+                    <div class="chart-box">
+                        <h4 class="chart-title">⏰ 时间段表现分析</h4>
+                        <canvas id="timeSlotChart"></canvas>
+                    </div>
+                    <div class="chart-box">
+                        <h4 class="chart-title">📊 曝光进入率分布</h4>
+                        <canvas id="exposureChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 主播详情卡片 -->
+            <div class="card fade-in" style="margin-top: 30px;">
+                <div class="card-header">
+                    <div class="card-icon"><i class="fas fa-user-tie"></i></div>
+                    <h3 class="card-title">主播业绩排名</h3>
+                </div>
+                <div id="anchorRanking" style="padding: 20px 0;">
+                    <!-- 动态生成主播排名 -->
+                </div>
+            </div>
+
+            <!-- 详细数据表格 -->
+            <div class="card fade-in" style="margin-top: 30px;">
+                <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <div class="card-icon"><i class="fas fa-table"></i></div>
+                        <h3 class="card-title">详细直播数据</h3>
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="upload-btn" onclick="exportData()" style="background: rgba(0, 243, 255, 0.1);">
+                            <i class="fas fa-download"></i> 导出数据
+                        </button>
+                        <button class="upload-btn" onclick="document.getElementById('fileInput').click()" style="background: rgba(157, 0, 255, 0.1);">
+                            <i class="fas fa-upload"></i> 上传新数据
+                        </button>
+                        <input type="file" id="fileInput" class="file-input" accept=".xlsx,.xls,.csv" onchange="handleFileUpload(event)">
+                    </div>
+                </div>
+                <div class="table-wrapper" style="max-height: 500px; overflow-y: auto;">
+                    <table class="data-table" id="dataTable">
+                        <thead>
+                            <tr>
+                                <th>日期</th>
+                                <th>抖音号</th>
+                                <th>时间段</th>
+                                <th>主播</th>
+                                <th>观看人数</th>
+                                <th>留资数</th>
+                                <th>获客成本</th>
+                                <th>曝光进入率</th>
+                                <th>平均停留</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody">
+                            <!-- 动态生成 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 智能洞察 -->
+            <div class="insights-card fade-in" style="margin-top: 30px; background: linear-gradient(135deg, rgba(0, 243, 255, 0.1), rgba(157, 0, 255, 0.1)); border: 1px solid rgba(0, 243, 255, 0.3); border-radius: 16px; padding: 30px;">
+                <h3 style="color: var(--color-neon-cyan); margin-bottom: 20px;"><i class="fas fa-lightbulb"></i> 🤖 AI智能洞察</h3>
+                <div id="aiInsights" style="display: grid; gap: 15px;">
+                    <!-- 动态生成洞察 -->
+                </div>
+            </div>
+        </section>
+
+        <!-- 同行动态区 -->
+        <section id="dynamics" class="section">
+            <div class="section-header">
+                <h2 class="section-title"><i class="fas fa-fire"></i> 同行动态与爆款拆解</h2>
+                <span class="badge hot">实时更新</span>
+            </div>
+
+            <div class="dynamics-grid" id="dynamicsGrid">
+                <!-- 通过JS动态加载 -->
+            </div>
+
+            <div class="card fade-in" style="margin-top: 30px;">
+                <div class="card-header">
+                    <div class="card-icon"><i class="fas fa-tools"></i></div>
+                    <h3 class="card-title">动态更新管理</h3>
+                </div>
+                <p class="card-description">您可以手动更新同行动态信息，保持内容时效性。以下为建议更新频率：</p>
+                <div class="frequency-grid">
+                    <div class="frequency-item daily"><h4>每日更新</h4><p>爆款视频发现、实时热点</p></div>
+                    <div class="frequency-item weekly"><h4>每周更新</h4><p>行业趋势、竞品动态</p></div>
+                    <div class="frequency-item monthly"><h4>每月更新</h4><p>深度拆解、策略分析</p></div>
+                </div>
+                <button class="upload-btn" onclick="showUpdateModal()">
+                    <i class="fas fa-edit"></i> 手动更新动态
+                </button>
+            </div>
+        </section>
+
+        <!-- 功能建议区 -->
+        <section id="suggestions" class="section">
+            <div class="section-header">
+                <h2 class="section-title"><i class="fas fa-lightbulb"></i> 平台功能建议</h2>
+                <span class="badge optimize">持续优化</span>
+            </div>
+
+            <div class="cards-grid" id="featureSuggestions">
+                <!-- 通过JS动态加载 -->
+            </div>
+
+            <div class="suggestions fade-in">
+                <h3><i class="fas fa-comment-dots"></i> 您的想法很重要</h3>
+                <p>这个平台为您而生！如果您有其他功能需求或改进建议，欢迎随时提出：</p>
+                <div class="feature-buttons">
+                    <button class="feature-btn api-btn" onclick="suggestFeature('数据API对接')">
+                        <i class="fas fa-plug"></i> 数据API对接
+                    </button>
+                    <button class="feature-btn app-btn" onclick="suggestFeature('移动端APP')">
+                        <i class="fas fa-mobile-alt"></i> 移动端APP
+                    </button>
+                    <button class="feature-btn report-btn" onclick="suggestFeature('自动化报告')">
+                        <i class="fas fa-file-pdf"></i> 自动化报告
+                    </button>
+                    <button class="feature-btn other-btn" onclick="suggestFeature('其他想法')">
+                        <i class="fas fa-lightbulb"></i> 其他想法
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 1. 直播排班管理 -->
+        <section id="schedule" class="section">
+            <div class="section-header">
+                <h2 class="section-title"><i class="fas fa-calendar-alt"></i> 直播排班管理</h2>
+                <span class="badge accent">智能排班</span>
+            </div>
+
+            <div class="card fade-in">
+                <div class="card-header">
+                    <div class="card-icon"><i class="fas fa-calendar-week"></i></div>
+                    <h3 class="card-title">本周排班表</h3>
+                    <div style="margin-left: auto;">
+                        <button class="upload-btn" onclick="addSchedule()">
+                            <i class="fas fa-plus"></i> 添加排班
+                        </button>
+                    </div>
+                </div>
+
+                <div class="schedule-calendar" id="scheduleCalendar">
+                    <div class="schedule-week">
+                        <div class="schedule-day">
+                            <div class="day-header">周一<br><small>03-24</small></div>
+                            <div class="day-slots">
+                                <div class="schedule-slot morning" data-anchor="王浩宇">06:00-08:00<br><span>王浩宇</span></div>
+                                <div class="schedule-slot evening" data-anchor="沈萍">19:00-21:00<br><span>沈萍</span></div>
+                            </div>
+                        </div>
+                        <div class="schedule-day">
+                            <div class="day-header">周二<br><small>03-25</small></div>
+                            <div class="day-slots">
+                                <div class="schedule-slot morning" data-anchor="虞瑜">06:00-08:00<br><span>虞瑜</span></div>
+                                <div class="schedule-slot afternoon" data-anchor="王浩宇">15:00-17:00<br><span>王浩宇</span></div>
+                            </div>
+                        </div>
+                        <div class="schedule-day">
+                            <div class="day-header">周三<br><small>03-26</small></div>
+                            <div class="day-slots">
+                                <div class="schedule-slot morning" data-anchor="王浩宇">06:00-08:00<br><span>王浩宇</span></div>
+                                <div class="schedule-slot evening hot" data-anchor="虞瑜">21:00-23:00<br><span>虞瑜 🔥</span></div>
+                            </div>
+                        </div>
+                        <div class="schedule-day today">
+                            <div class="day-header">周四<br><small>03-27</small></div>
+                            <div class="day-slots">
+                                <div class="schedule-slot morning" data-anchor="沈萍">06:00-08:00<br><span>沈萍</span></div>
+                                <div class="schedule-slot afternoon" data-anchor="虞瑜">15:00-17:00<br><span>虞瑜</span></div>
+                                <div class="schedule-slot evening" data-anchor="王浩宇">19:00-21:00<br><span>王浩宇</span></div>
+                            </div>
+                        </div>
+                        <div class="schedule-day">
+                            <div class="day-header">周五<br><small>03-28</small></div>
+                            <div class="day-slots">
+                                <div class="schedule-slot morning" data-anchor="王浩宇">06:00-08:00<br><span>王浩宇</span></div>
+                                <div class="schedule-slot evening" data-anchor="沈萍">19:00-21:00<br><span>沈萍</span></div>
+                            </div>
+                        </div>
+                        <div class="schedule-day weekend">
+                            <div class="day-header">周六<br><small>03-29</small></div>
+                            <div class="day-slots">
+                                <div class="schedule-slot morning" data-anchor="虞瑜">08:00-10:00<br><span>虞瑜</span></div>
+                            </div>
+                        </div>
+                        <div class="schedule-day weekend">
+                            <div class="day-header">周日<br><small>03-30</small></div>
+                            <div class="day-slots">
+                                <div class="schedule-slot rest">休息日</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="schedule-legend" style="margin-top: 20px; display: flex; gap: 20px; flex-wrap: wrap;">
+                    <span><i class="fas fa-circle" style="color: #00f3ff;"></i> 早场 (6-10点)</span>
+                    <span><i class="fas fa-circle" style="color: #ff00ff;"></i> 午场 (12-15点)</span>
+                    <span><i class="fas fa-circle" style="color: #ffd700;"></i> 下午场 (15-19点)</span>
+                    <span><i class="fas fa-circle" style="color: #00ff9d;"></i> 晚场 (19-23点)</span>
+                    <span><i class="fas fa-fire" style="color: #ff6b6b;"></i> 热门时段</span>
+                </div>
+            </div>
+
+            <div class="card fade-in" style="margin-top: 30px;">
+                <div class="card-header">
+                    <div class="card-icon"><i class="fas fa-robot"></i></div>
+                    <h3 class="card-title">智能排班建议</h3>
+                </div>
+                <div id="scheduleSuggestions">
+                    <div class="insight-item">
+                        <i class="fas fa-lightbulb insight-icon"></i>
+                        <div class="insight-content">
+                            <div class="insight-title">最佳时段分配</div>
+                            <div class="insight-desc">根据历史数据，早场(6-10点)由王浩宇直播效果最佳，建议优先安排；晚场虞瑜转化率更高。</div>
+                        </div>
+                    </div>
+                    <div class="insight-item" style="margin-top: 15px;">
+                        <i class="fas fa-exclamation-triangle insight-icon" style="color: #ffd700;"></i>
+                        <div class="insight-content">
+                            <div class="insight-title">时段空缺提醒</div>
+                            <div class="insight-desc">周三下午场、周五下午场暂无排班，建议补充人手或安排录播内容。</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. 话术评分系统 -->
+        <section id="scoring" class="section">
+            <div class="section-header">
+                <h2 class="section-title"><i class="fas fa-microphone-alt"></i> 话术评分系统</h2>
+                <span class="badge hot">AI智能评分</span>
+            </div>
+
+            <div class="card fade-in">
+                <div class="card-header">
+                    <div class="card-icon"><i class="fas fa-upload"></i></div>
+                    <h3 class="card-title">上传话术内容</h3>
+                </div>
+                <div class="upload-zone" id="scriptUploadZone" style="margin: 20px 0;">
+                    <div class="upload-icon"><i class="fas fa-file-audio"></i></div>
+                    <div class="upload-text">
+                        <h3>上传直播录音或话术文本</h3>
+                        <p>支持 MP3、WAV 音频文件或 TXT、DOCX 文本文件，AI将自动分析话术质量</p>
+                        <button class="upload-btn" onclick="document.getElementById('scriptFileInput').click()">
+                            <i class="fas fa-cloud-upload-alt"></i> 选择文件
+                        </button>
+                        <input type="file" id="scriptFileInput" class="file-input" accept=".mp3,.wav,.txt,.docx" onchange="handleScriptUpload(event)">
+                    </div>
+                </div>
+            </div>
+
+            <div class="cards-grid" style="margin-top: 30px;" id="scoringResults">
+                <!-- 示例评分卡片 -->
+                <div class="card fade-in">
+                    <div class="score-ring" style="--score: 85;">
+                        <div class="score-value-display">85</div>
+                    </div>
+                    <h4 style="text-align: center; margin: 15px 0; color: var(--color-neon-cyan);">开场白评分</h4>
+                    <div class="score-details">
+                        <div class="score-item">
+                            <span>吸引力</span>
+                            <div class="score-bar"><div style="width: 90%;"></div></div>
+                            <span>90</span>
+                        </div>
+                        <div class="score-item">
+                            <span>专业性</span>
+                            <div class="score-bar"><div style="width: 85%;"></div></div>
+                            <span>85</span>
+                        </div>
+                        <div class="score-item">
+                            <span>互动性</span>
+                            <div class="score-bar"><div style="width: 75%;"></div></div>
+                            <span>75</span>
+                        </div>
+                        <div class="score-item">
+                            <span>转化率</span>
+                            <div class="score-bar"><div style="width: 88%;"></div></div>
+                            <span>88</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card fade-in">
+                    <div class="score-ring" style="--score: 72; --ring-color: #ffd700;">
+                        <div class="score-value-display" style="color: #ffd700;">72</div>
+                    </div>
+                    <h4 style="text-align: center; margin: 15px 0; color: var(--color-neon-cyan);">产品介绍评分</h4>
+                    <div class="score-details">
+                        <div class="score-item">
+                            <span>FABE应用</span>
+                            <div class="score-bar"><div style="width: 70%;"></div></div>
+                            <span>70</span>
+                        </div>
+                        <div class="score-item">
+                            <span>卖点提炼</span>
+                            <div class="score-bar"><div style="width: 80%;"></div></div>
+                            <span>80</span>
+                        </div>
+                        <div class="score-item">
+                            <span>说服力</span>
+                            <div class="score-bar"><div style="width: 65%;"></div></div>
+                            <span>65</span>
+                        </div>
+                        <div class="score-item">
+                            <span>客户共鸣</span>
+                            <div class="score-bar"><div style="width: 72%;"></div></div>
+                            <span>72</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card fade-in" style="margin-top: 30px;">
+                <div class="card-header">
+                    <div class="card-icon"><i class="fas fa-comments"></i></div>
+                    <h3 class="card-title">话术改进建议</h3>
+                </div>
+                <div id="scriptSuggestions">
+                    <div class="suggestion-comparison">
+                        <div class="comparison-item">
+                            <div class="comparison-label">原话术</div>
+                            <div class="comparison-text weak">"这款空压机很节能，大家快来买。"</div>
+                        </div>
+                        <div class="comparison-arrow"><i class="fas fa-arrow-right"></i></div>
+                        <div class="comparison-item">
+                            <div class="comparison-label">优化建议</div>
+                            <div class="comparison-text strong">"这款德曼30KW永磁变频空压机，比传统机型省电40%，宁波XX工厂用了3个月就省回设备钱！现在点击小风车，免费测算您的工厂能省多少电费！"</div>
+                        </div>
+                    </div>
+                    <div class="improvement-tips" style="margin-top: 20px;">
+                        <h4 style="color: var(--color-neon-cyan); margin-bottom: 15px;"><i class="fas fa-check-circle"></i> 优化要点：</h4>
+                        <ul style="list-style: none; padding: 0;">
+                            <li style="margin: 10px 0; padding-left: 25px; position: relative;">
+                                <i class="fas fa-check" style="position: absolute; left: 0; color: var(--color-neon-green);"></i>
+                                增加具体型号和功率，提升专业度
+                            </li>
+                            <li style="margin: 10px 0; padding-left: 25px; position: relative;">
+                                <i class="fas fa-check" style="position: absolute; left: 0; color: var(--color-neon-green);"></i>
+                                使用具体数字（省电40%），增强可信度
+                            </li>
+                            <li style="margin: 10px 0; padding-left: 25px; position: relative;">
+                                <i class="fas fa-check" style="position: absolute; left: 0; color: var(--color-neon-green);"></i>
+                                加入客户案例，提供社交证明
+                            </li>
+                            <li style="margin: 10px 0; padding-left: 25px; position: relative;">
+                                <i class="fas fa-check" style="position: absolute; left: 0; color: var(--color-neon-green);"></i>
+                                明确行动指令（点击小风车），引导转化
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. 主播成长体系 -->
+        <section id="growth" class="section">
+            <div class="section-header">
+                <h2 class="section-title"><i class="fas fa-medal"></i> 主播成长体系</h2>
+                <span class="badge" style="background: linear-gradient(135deg, #ffd700, #ffaa00); color: #000;">成长之路</span>
+            </div>
+
+            <div class="cards-grid">
+                <div class="card fade-in">
+                    <div class="level-badge bronze">
+                        <i class="fas fa-seedling"></i>
+                    </div>
+                    <h3 style="text-align: center; margin: 15px 0;">青铜主播</h3>
+                    <p style="text-align: center; color: var(--color-text-secondary);">初级 · 0-50场直播</p>
+                    <ul class="level-requirements">
+                        <li><i class="fas fa-check"></i> 熟悉直播流程</li>
+                        <li><i class="fas fa-check"></i> 掌握基础话术</li>
+                        <li><i class="fas fa-check"></i> 场均留资 ≥10条</li>
+                        <li><i class="fas fa-check"></i> 获客成本 ≤200元</li>
+                    </ul>
+                    <div class="level-progress">
+                        <div class="progress-bar"><div style="width: 100%;"></div></div>
+                        <span>已达标</span>
+                    </div>
+                </div>
+
+                <div class="card fade-in">
+                    <div class="level-badge silver">
+                        <i class="fas fa-gem"></i>
+                    </div>
+                    <h3 style="text-align: center; margin: 15px 0;">白银主播</h3>
+                    <p style="text-align: center; color: var(--color-text-secondary);">中级 · 50-100场直播</p>
+                    <ul class="level-requirements">
+                        <li><i class="fas fa-check"></i> 灵活应对互动</li>
+                        <li><i class="fas fa-check"></i> 掌握促单技巧</li>
+                        <li><i class="fas fa-check"></i> 场均留资 ≥20条</li>
+                        <li><i class="fas fa-check"></i> 获客成本 ≤150元</li>
+                    </ul>
+                    <div class="level-progress">
+                        <div class="progress-bar"><div style="width: 75%;"></div></div>
+                        <span>75% 进度</span>
+                    </div>
+                </div>
+
+                <div class="card fade-in">
+                    <div class="level-badge gold">
+                        <i class="fas fa-crown"></i>
+                    </div>
+                    <h3 style="text-align: center; margin: 15px 0;">黄金主播</h3>
+                    <p style="text-align: center; color: var(--color-text-secondary);">高级 · 100-200场直播</p>
+                    <ul class="level-requirements">
+                        <li><i class="fas fa-circle" style="color: var(--color-text-secondary);"></i> 具备控场能力</li>
+                        <li><i class="fas fa-circle" style="color: var(--color-text-secondary);"></i> 精通转化策略</li>
+                        <li><i class="fas fa-circle" style="color: var(--color-text-secondary);"></i> 场均留资 ≥30条</li>
+                        <li><i class="fas fa-circle" style="color: var(--color-text-secondary);"></i> 获客成本 ≤100元</li>
+                    </ul>
+                    <div class="level-progress">
+                        <div class="progress-bar"><div style="width: 35%;"></div></div>
+                        <span>35% 进度</span>
+                    </div>
+                </div>
+
+                <div class="card fade-in">
+                    <div class="level-badge platinum">
+                        <i class="fas fa-star"></i>
+                    </div>
+                    <h3 style="text-align: center; margin: 15px 0;">铂金导师</h3>
+                    <p style="text-align: center; color: var(--color-text-secondary);">专家 · 200+场直播</p>
+                    <ul class="level-requirements">
+                        <li><i class="fas fa-circle" style="color: var(--color-text-secondary);"></i> 可培训新人</li>
+                        <li><i class="fas fa-circle" style="color: var(--color-text-secondary);"></i> 话术创新优化</li>
+                        <li><i class="fas fa-circle" style="color: var(--color-text-secondary);"></i> 场均留资 ≥40条</li>
+                        <li><i class="fas fa-circle" style="color: var(--color-text-secondary);"></i> 获客成本 ≤80元</li>
+                    </ul>
+                    <div class="level-progress">
+                        <div class="progress-bar"><div style="width: 0%;"></div></div>
+                        <span>未解锁</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card fade-in" style="margin-top: 30px;">
+                <div class="card-header">
+                    <div class="card-icon"><i class="fas fa-tasks"></i></div>
+                    <h3 class="card-title">成长任务清单</h3>
+                </div>
+                <div class="task-list">
+                    <div class="task-item completed">
+                        <div class="task-checkbox"><i class="fas fa-check"></i></div>
+                        <div class="task-content">
+                            <div class="task-title">完成10场直播</div>
+                            <div class="task-desc">已达成 · 获得青铜徽章</div>
+                        </div>
+                        <div class="task-reward">+100积分</div>
+                    </div>
+                    <div class="task-item completed">
+                        <div class="task-checkbox"><i class="fas fa-check"></i></div>
+                        <div class="task-content">
+                            <div class="task-title">话术培训考试80分</div>
+                            <div class="task-desc">已达成 · 成绩85分</div>
+                        </div>
+                        <div class="task-reward">+50积分</div>
+                    </div>
+                    <div class="task-item in-progress">
+                        <div class="task-checkbox"></div>
+                        <div class="task-content">
+                            <div class="task-title">单场留资突破25条</div>
+                            <div class="task-desc">进行中 · 当前最高23条</div>
+                        </div>
+                        <div class="task-reward">+200积分</div>
+                    </div>
+                    <div class="task-item">
+                        <div class="task-checkbox"></div>
+                        <div class="task-content">
+                            <div class="task-title">连续7天无迟到</div>
+                            <div class="task-desc">未开始 · 0/7天</div>
+                        </div>
+                        <div class="task-reward">+100积分</div>
+                    </div>
+                    <div class="task-item">
+                        <div class="task-checkbox"></div>
+                        <div class="task-content">
+                            <div class="task-title">帮助1位新人成长</div>
+                            <div class="task-desc">未开始 · 需达到黄金级别</div>
+                        </div>
+                        <div class="task-reward">+500积分</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 4. 实时预警中心 -->
+        <section id="alerts" class="section">
+            <div class="section-header">
+                <h2 class="section-title"><i class="fas fa-bell"></i> 实时预警中心</h2>
+                <span class="badge hot">实时监控</span>
+            </div>
+
+            <div class="alert-summary">
+                <div class="alert-card critical">
+                    <div class="alert-icon"><i class="fas fa-exclamation-circle"></i></div>
+                    <div class="alert-count">1</div>
+                    <div class="alert-label">紧急预警</div>
+                </div>
+                <div class="alert-card warning">
+                    <div class="alert-icon"><i class="fas fa-exclamation-triangle"></i></div>
+                    <div class="alert-count">3</div>
+                    <div class="alert-label">重要提醒</div>
+                </div>
+                <div class="alert-card info">
+                    <div class="alert-icon"><i class="fas fa-info-circle"></i></div>
+                    <div class="alert-count">5</div>
+                    <div class="alert-label">优化建议</div>
+                </div>
+            </div>
+
+            <div class="card fade-in" style="margin-top: 30px;">
+                <div class="card-header">
+                    <div class="card-icon"><i class="fas fa-list-ul"></i></div>
+                    <h3 class="card-title">预警列表</h3>
+                </div>
+                <div class="alert-list">
+                    <div class="alert-item critical">
+                        <div class="alert-status"><i class="fas fa-exclamation-circle"></i></div>
+                        <div class="alert-content">
+                            <div class="alert-title">获客成本超标</div>
+                            <div class="alert-desc">虞瑜 03-25 21:00场次的获客成本达到¥235，超过目标150元，请检查话术和投放设置。</div>
+                            <div class="alert-time"><i class="far fa-clock"></i> 2小时前</div>
+                        </div>
+                        <div class="alert-actions">
+                            <button class="alert-btn" onclick="viewDetail('cost')">查看详情</button>
+                        </div>
+                    </div>
+
+                    <div class="alert-item warning">
+                        <div class="alert-status"><i class="fas fa-exclamation-triangle"></i></div>
+                        <div class="alert-content">
+                            <div class="alert-title">观看人数下降</div>
+                            <div class="alert-desc">近3天下午场(15-17点)平均观看人数下降35%，建议调整时段或优化封面标题。</div>
+                            <div class="alert-time"><i class="far fa-clock"></i> 5小时前</div>
+                        </div>
+                        <div class="alert-actions">
+                            <button class="alert-btn" onclick="viewDetail('views')">查看详情</button>
+                        </div>
+                    </div>
+
+                    <div class="alert-item warning">
+                        <div class="alert-status"><i class="fas fa-exclamation-triangle"></i></div>
+                        <div class="alert-content">
+                            <div class="alert-title">小风车点击率偏低</div>
+                            <div class="alert-desc">王浩宇 03-26 早场小风车点击率仅2.1%，低于平均5.3%，建议优化引导话术。</div>
+                            <div class="alert-time"><i class="far fa-clock"></i> 1天前</div>
+                        </div>
+                        <div class="alert-actions">
+                            <button class="alert-btn" onclick="viewDetail('clicks')">查看详情</button>
+                        </div>
+                    </div>
+
+                    <div class="alert-item info">
+                        <div class="alert-status"><i class="fas fa-info-circle"></i></div>
+                        <div class="alert-content">
+                            <div class="alert-title">竞品动态提醒</div>
+                            <div class="alert-desc">某竞品近期加大了早场投放力度，建议关注其话术策略变化。</div>
+                            <div class="alert-time"><i class="far fa-clock"></i> 1天前</div>
+                        </div>
+                        <div class="alert-actions">
+                            <button class="alert-btn" onclick="viewDetail('competitor')">查看详情</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 5. 知识库系统 -->
+        <section id="knowledge" class="section">
+            <div class="section-header">
+                <h2 class="section-title"><i class="fas fa-book-open"></i> 知识库系统</h2>
+                <span class="badge optimize">持续更新</span>
+            </div>
+
+            <div class="knowledge-search">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" placeholder="搜索话术案例、常见问题、行业资讯..." id="knowledgeSearch">
+                    <button class="search-btn" onclick="searchKnowledge()">搜索</button>
+                </div>
+            </div>
+
+            <div class="knowledge-categories">
+                <button class="category-btn active" data-category="all">全部</button>
+                <button class="category-btn" data-category="scripts">话术案例</button>
+                <button class="category-btn" data-category="faq">常见问题</button>
+                <button class="category-btn" data-category="industry">行业资讯</button>
+                <button class="category-btn" data-category="skills">技巧干货</button>
+            </div>
+
+            <div class="knowledge-grid" id="knowledgeGrid">
+                <div class="knowledge-card" data-category="scripts">
+                    <div class="knowledge-tag">话术案例</div>
+                    <h4>高转化开场白话术模板</h4>
+                    <p>包含3种不同场景的开场白，实测转化率提升40%...</p>
+                    <div class="knowledge-meta">
+                        <span><i class="fas fa-eye"></i> 1.2k 浏览</span>
+                        <span><i class="fas fa-heart"></i> 86 收藏</span>
+                    </div>
+                </div>
+
+                <div class="knowledge-card" data-category="faq">
+                    <div class="knowledge-tag" style="background: rgba(0, 255, 157, 0.2); color: #00ff9d;">常见问题</div>
+                    <h4>客户说"太贵了"怎么回？</h4>
+                    <p>5种应对话术+价格拆解技巧，帮你化解价格异议...</p>
+                    <div class="knowledge-meta">
+                        <span><i class="fas fa-eye"></i> 856 浏览</span>
+                        <span><i class="fas fa-heart"></i> 62 收藏</span>
+                    </div>
+                </div>
+
+                <div class="knowledge-card" data-category="industry">
+                    <div class="knowledge-tag" style="background: rgba(255, 0, 255, 0.2); color: #ff00ff;">行业资讯</div>
+                    <h4>2026抖音直播新规解读</h4>
+                    <p>m2m3流量共振策略，新规下的获客成本优化方案...</p>
+                    <div class="knowledge-meta">
+                        <span><i class="fas fa-eye"></i> 2.3k 浏览</span>
+                        <span><i class="fas fa-heart"></i> 156 收藏</span>
+                    </div>
+                </div>
+
+                <div class="knowledge-card" data-category="skills">
+                    <div class="knowledge-tag" style="background: rgba(255, 215, 0, 0.2); color: #ffd700;">技巧干货</div>
+                    <h4>小风车引导话术大全</h4>
+                    <p>10种不同场景的小风车引导话术，提升组件点击率...</p>
+                    <div class="knowledge-meta">
+                        <span><i class="fas fa-eye"></i> 967 浏览</span>
+                        <span><i class="fas fa-heart"></i> 74 收藏</span>
+                    </div>
+                </div>
+
+                <div class="knowledge-card" data-category="scripts">
+                    <div class="knowledge-tag">话术案例</div>
+                    <h4>促单成交黄金话术</h4>
+                    <p>限时逼单、对比促单、赠品促单等多种促单技巧...</p>
+                    <div class="knowledge-meta">
+                        <span><i class="fas fa-eye"></i> 1.5k 浏览</span>
+                        <span><i class="fas fa-heart"></i> 98 收藏</span>
+                    </div>
+                </div>
+
+                <div class="knowledge-card" data-category="faq">
+                    <div class="knowledge-tag" style="background: rgba(0, 255, 157, 0.2); color: #00ff9d;">常见问题</div>
+                    <h4>直播间人少怎么办？</h4>
+                    <p>7个提升直播间人气的实用技巧，从封面到话术...</p>
+                    <div class="knowledge-meta">
+                        <span><i class="fas fa-eye"></i> 2.1k 浏览</span>
+                        <span><i class="fas fa-heart"></i> 132 收藏</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card fade-in" style="margin-top: 30px;">
+                <div class="card-header">
+                    <div class="card-icon"><i class="fas fa-star"></i></div>
+                    <h3 class="card-title">本周热门</h3>
+                </div>
+                <div class="hot-topics">
+                    <div class="hot-topic-item">
+                        <span class="hot-rank">1</span>
+                        <span class="hot-title">空压机节能计算话术</span>
+                        <span class="hot-views"><i class="fas fa-fire"></i> 3.2k 热度</span>
+                    </div>
+                    <div class="hot-topic-item">
+                        <span class="hot-rank">2</span>
+                        <span class="hot-title">竞品对比话术技巧</span>
+                        <span class="hot-views"><i class="fas fa-fire"></i> 2.8k 热度</span>
+                    </div>
+                    <div class="hot-topic-item">
+                        <span class="hot-rank">3</span>
+                        <span class="hot-title">售后问题应对策略</span>
+                        <span class="hot-views"><i class="fas fa-fire"></i> 2.1k 热度</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- 页脚 -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-logo">
+                    <h3>北北新媒体工作室</h3>
+                    <p>专业抖音运营培训与数据智能分析</p>
+                    <p class="share-link">
+                        <i class="fas fa-share-alt"></i> 分享本链接给主播：<span id="pageUrl">当前页面URL</span>
+                    </p>
+                </div>
+                <div class="footer-contact">
+                    <p><i class="fas fa-envelope"></i> 联系我们: beibei@deman.com</p>
+                    <p><i class="fas fa-calendar-alt"></i> 最后更新: 2026-03-27</p>
+                    <p><i class="fas fa-sync-alt"></i> 数据同步: 手动上传</p>
+                    <p><i class="fas fa-database"></i> 数据状态: <span id="dataStatus">本地存储</span></p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- 登录模态框 -->
+    <div id="loginModal" class="modal">
+        <div class="modal-content">
+            <h3><i class="fas fa-sign-in-alt"></i> 用户登录</h3>
+            <div class="form-group">
+                <label>用户名</label>
+                <input type="text" id="loginUsername" placeholder="请输入用户名">
+            </div>
+            <div class="form-group">
+                <label>密码</label>
+                <input type="password" id="loginPassword" placeholder="请输入密码">
+            </div>
+            <div class="form-group">
+                <label>角色</label>
+                <select id="loginRole"><option value="anchor">主播</option><option value="admin">管理员</option></select>
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-btn cancel-btn" onclick="closeLoginModal()">取消</button>
+                <button class="modal-btn submit-btn" onclick="login()">登录</button>
+            </div>
+            <p class="modal-note">这是一个模拟登录系统，用户名和密码可以任意填写</p>
+        </div>
+    </div>
+
+    <!-- 注册模态框 -->
+    <div id="registerModal" class="modal">
+        <div class="modal-content">
+            <h3><i class="fas fa-user-plus"></i> 用户注册</h3>
+            <div class="form-group"><label>用户名</label><input type="text" id="registerUsername" placeholder="请输入用户名"></div>
+            <div class="form-group"><label>密码</label><input type="password" id="registerPassword" placeholder="请输入密码"></div>
+            <div class="form-group"><label>确认密码</label><input type="password" id="registerConfirmPassword" placeholder="请再次输入密码"></div>
+            <div class="form-group">
+                <label>角色</label>
+                <select id="registerRole"><option value="anchor">主播</option><option value="admin">管理员</option></select>
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-btn cancel-btn" onclick="closeRegisterModal()">取消</button>
+                <button class="modal-btn submit-btn" onclick="register()">注册</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 更新动态模态框 -->
+    <div id="updateModal" class="modal">
+        <div class="modal-content">
+            <h3><i class="fas fa-edit"></i> 更新同行动态</h3>
+            <div class="form-group"><label>标题</label><input type="text" id="dynamicTitle" placeholder="请输入动态标题"></div>
+            <div class="form-group"><label>内容描述</label><textarea id="dynamicContent" rows="4" placeholder="请输入动态内容描述"></textarea></div>
+            <div class="form-group">
+                <label>类型</label>
+                <select id="dynamicType">
+                    <option value="trend">行业趋势</option>
+                    <option value="video">爆款视频</option>
+                    <option value="innovation">内容创新</option>
+                    <option value="competitor">竞争对手</option>
+                </select>
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-btn cancel-btn" onclick="closeUpdateModal()">取消</button>
+                <button class="modal-btn submit-btn" onclick="addDynamic()">添加动态</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PWA安装提示 -->
+    <div id="installPWA" class="pwa-install">
+        <div class="pwa-content">
+            <i class="fas fa-mobile-alt"></i>
+            <div class="pwa-text">
+                <h4>安装到手机</h4>
+                <p>将此应用安装到主屏幕，获得更好的体验</p>
+            </div>
+            <button class="pwa-btn install-btn" onclick="installPWA()">安装</button>
+            <button class="pwa-btn cancel-btn" onclick="hidePWAInstall()">稍后</button>
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // 全局状态管理
+        // ============================================
+        const AppState = {
+            currentUser: null,
+            liveData: [],
+            charts: {},
+            isDataLoaded: false
+        };
+
+        // ============================================
+        // 初始化
+        // ============================================
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 北北新媒体工作室培训平台已加载');
+
+            const pageUrl = document.getElementById('pageUrl');
+            if (pageUrl) pageUrl.textContent = window.location.href;
+
+            loadDataFromStorage();
+            renderTrainingMaterials();
+            renderTrainingSuggestions();
+            renderAnalysisSuggestions();
+            renderDynamics();
+            renderFeatureSuggestions();
+            initSmoothScroll();
+            checkLoginStatus();
+            initDragAndDrop();
+
+            // 初始化直播数据可视化
+            initLiveDataDashboard();
+        });
+
+        // ============================================
+        // 直播数据可视化仪表板
+        // ============================================
+        function initLiveDataDashboard() {
+            renderDataTable();
+            initCharts();
+            renderAnchorRanking();
+            generateAIInsights();
+        }
+
+        // 渲染数据表格
+        function renderDataTable() {
+            const tbody = document.getElementById('tableBody');
+            if (!tbody) return;
+
+            tbody.innerHTML = LIVE_DATA.map(row => `
+                <tr>
+                    <td>${row.date}</td>
+                    <td>${row.account}</td>
+                    <td>${row.time}</td>
+                    <td><strong style="color: var(--color-neon-cyan);">${row.anchor}</strong></td>
+                    <td>${row.viewers?.toLocaleString() || '-'}</td>
+                    <td><span style="color: var(--color-neon-green); font-weight: 600;">${row.leads || 0}</span></td>
+                    <td>${row.cost ? '¥' + row.cost.toFixed(2) : '-'}</td>
+                    <td>${row.enterRate ? (row.enterRate * 100).toFixed(2) + '%' : '-'}</td>
+                    <td>${row.avgStay || '-'}</td>
+                </tr>
+            `).join('');
+        }
+
+        // 初始化图表
+        function initCharts() {
+            initTrendChart();
+            initAnchorCharts();
+            initTimeSlotChart();
+            initExposureChart();
+        }
+
+        // 趋势图
+        function initTrendChart() {
+            const ctx = document.getElementById('trendChart');
+            if (!ctx) return;
+
+            // 按日期汇总数据
+            const dailyData = {};
+            LIVE_DATA.forEach(row => {
+                if (!dailyData[row.date]) {
+                    dailyData[row.date] = { viewers: 0, leads: 0 };
+                }
+                dailyData[row.date].viewers += row.viewers || 0;
+                dailyData[row.date].leads += row.leads || 0;
+            });
+
+            const dates = Object.keys(dailyData).sort();
+            const viewers = dates.map(d => dailyData[d].viewers);
+            const leads = dates.map(d => dailyData[d].leads);
+
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: dates.map(d => d.slice(5)),
+                    datasets: [
+                        {
+                            label: '观看人数',
+                            data: viewers,
+                            borderColor: '#00f3ff',
+                            backgroundColor: 'rgba(0, 243, 255, 0.1)',
+                            fill: true,
+                            tension: 0.4,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: '留资数',
+                            data: leads,
+                            borderColor: '#00ff9d',
+                            backgroundColor: 'rgba(0, 255, 157, 0.1)',
+                            fill: true,
+                            tension: 0.4,
+                            yAxisID: 'y1'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: { labels: { color: '#b0b7d6' } }
+                    },
+                    scales: {
+                        x: { ticks: { color: '#b0b7d6' }, grid: { color: 'rgba(255,255,255,0.1)' } },
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            ticks: { color: '#00f3ff' },
+                            grid: { color: 'rgba(0, 243, 255, 0.1)' }
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            ticks: { color: '#00ff9d' },
+                            grid: { drawOnChartArea: false }
+                        }
+                    }
+                }
+            });
+        }
+
+        // 主播对比图表
+        function initAnchorCharts() {
+            const anchorData = {};
+            LIVE_DATA.forEach(row => {
+                if (!anchorData[row.anchor]) {
+                    anchorData[row.anchor] = { leads: 0, cost: [], viewers: 0 };
+                }
+                anchorData[row.anchor].leads += row.leads || 0;
+                anchorData[row.anchor].viewers += row.viewers || 0;
+                if (row.cost) anchorData[row.anchor].cost.push(row.cost);
+            });
+
+            const anchors = Object.keys(anchorData);
+            const leads = anchors.map(a => anchorData[a].leads);
+            const avgCosts = anchors.map(a => {
+                const costs = anchorData[a].cost;
+                return costs.length ? costs.reduce((a, b) => a + b, 0) / costs.length : 0;
+            });
+
+            // 留资对比图
+            const leadsCtx = document.getElementById('anchorLeadsChart');
+            if (leadsCtx) {
+                new Chart(leadsCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: anchors,
+                        datasets: [{
+                            label: '留资总数',
+                            data: leads,
+                            backgroundColor: ['#00f3ff', '#00ff9d', '#ff00ff', '#ffd700', '#ff6b6b'],
+                            borderRadius: 8
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            y: { ticks: { color: '#b0b7d6' }, grid: { color: 'rgba(255,255,255,0.1)' } },
+                            x: { ticks: { color: '#b0b7d6' } }
+                        }
+                    }
+                });
+            }
+
+            // 成本对比图
+            const costCtx = document.getElementById('anchorCostChart');
+            if (costCtx) {
+                new Chart(costCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: anchors,
+                        datasets: [{
+                            label: '平均获客成本',
+                            data: avgCosts,
+                            backgroundColor: anchors.map((_, i) => avgCosts[i] < 100 ? '#00ff9d' : avgCosts[i] < 150 ? '#ffd700' : '#ff6b6b'),
+                            borderRadius: 8
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            y: {
+                                ticks: { color: '#b0b7d6', callback: v => '¥' + v.toFixed(0) },
+                                grid: { color: 'rgba(255,255,255,0.1)' }
+                            },
+                            x: { ticks: { color: '#b0b7d6' } }
+                        }
+                    }
+                });
+            }
+        }
+
+        // 时间段分析图
+        function initTimeSlotChart() {
+            const ctx = document.getElementById('timeSlotChart');
+            if (!ctx) return;
+
+            const timeSlots = { '早场(6-10点)': { leads: 0, count: 0 }, '午场(12-15点)': { leads: 0, count: 0 }, '下午场(15-19点)': { leads: 0, count: 0 }, '晚场(19-23点)': { leads: 0, count: 0 } };
+
+            LIVE_DATA.forEach(row => {
+                const hour = parseInt(row.time.split(':')[0]);
+                let slot = hour >= 6 && hour < 10 ? '早场(6-10点)' : hour >= 12 && hour < 15 ? '午场(12-15点)' : hour >= 15 && hour < 19 ? '下午场(15-19点)' : '晚场(19-23点)';
+                if (timeSlots[slot]) {
+                    timeSlots[slot].leads += row.leads || 0;
+                    timeSlots[slot].count += 1;
+                }
+            });
+
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(timeSlots),
+                    datasets: [{
+                        data: Object.values(timeSlots).map(s => s.leads),
+                        backgroundColor: ['#00f3ff', '#00ff9d', '#ff00ff', '#ffd700'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { position: 'right', labels: { color: '#b0b7d6' } }
+                    }
+                }
+            });
+        }
+
+        // 曝光进入率分布
+        function initExposureChart() {
+            const ctx = document.getElementById('exposureChart');
+            if (!ctx) return;
+
+            const rates = LIVE_DATA.map(r => r.enterRate).filter(r => r);
+            const buckets = { '优秀(>15%)': 0, '良好(8-15%)': 0, '一般(4-8%)': 0, '待优化(<4%)': 0 };
+            rates.forEach(r => {
+                if (r > 0.15) buckets['优秀(>15%)']++;
+                else if (r > 0.08) buckets['良好(8-15%)']++;
+                else if (r > 0.04) buckets['一般(4-8%)']++;
+                else buckets['待优化(<4%)']++;
+            });
+
+            new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: Object.keys(buckets),
+                    datasets: [{
+                        data: Object.values(buckets),
+                        backgroundColor: ['#00ff9d', '#00f3ff', '#ffd700', '#ff6b6b'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { position: 'right', labels: { color: '#b0b7d6' } }
+                    }
+                }
+            });
+        }
+
+        // 渲染主播排名
+        function renderAnchorRanking() {
+            const container = document.getElementById('anchorRanking');
+            if (!container) return;
+
+            const anchorStats = {};
+            LIVE_DATA.forEach(row => {
+                if (!anchorStats[row.anchor]) {
+                    anchorStats[row.anchor] = { name: row.anchor, leads: 0, viewers: 0, cost: [], sessions: 0 };
+                }
+                anchorStats[row.anchor].leads += row.leads || 0;
+                anchorStats[row.anchor].viewers += row.viewers || 0;
+                anchorStats[row.anchor].sessions += 1;
+                if (row.cost) anchorStats[row.anchor].cost.push(row.cost);
+            });
+
+            const ranked = Object.values(anchorStats).sort((a, b) => b.leads - a.leads);
+
+            container.innerHTML = ranked.map((anchor, i) => {
+                const avgCost = anchor.cost.length ? (anchor.cost.reduce((a, b) => a + b, 0) / anchor.cost.length).toFixed(0) : '-';
+                return `
+                    <div class="anchor-rank-item">
+                        <div class="anchor-rank ${i < 3 ? 'top3' : 'normal'}">${i + 1}</div>
+                        <div class="anchor-info">
+                            <div class="anchor-name">${anchor.name}</div>
+                            <div class="anchor-stats">
+                                <span><i class="fas fa-video" style="color: var(--color-neon-cyan);"></i> ${anchor.sessions}场直播</span>
+                                <span><i class="fas fa-users" style="color: var(--color-neon-cyan);"></i> ${anchor.viewers.toLocaleString()}观看</span>
+                                <span><i class="fas fa-address-card" style="color: var(--color-neon-green);"></i> ${anchor.leads}留资</span>
+                                <span><i class="fas fa-yen-sign" style="color: var(--color-neon-magenta);"></i> ${avgCost}平均成本</span>
+                            </div>
+                        </div>
+                        <div class="anchor-score">
+                            <div class="score-value">${anchor.leads}</div>
+                            <div class="score-label">总留资</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // 生成AI洞察
+        function generateAIInsights() {
+            const container = document.getElementById('aiInsights');
+            if (!container) return;
+
+            // 计算洞察数据
+            const totalLeads = LIVE_DATA.reduce((s, r) => s + (r.leads || 0), 0);
+            const avgCost = LIVE_DATA.filter(r => r.cost).reduce((s, r) => s + r.cost, 0) / LIVE_DATA.filter(r => r.cost).length;
+            const bestDay = LIVE_DATA.reduce((m, r) => r.leads > m.leads ? r : m, LIVE_DATA[0]);
+            const morningSlots = LIVE_DATA.filter(r => { const h = parseInt(r.time.split(':')[0]); return h >= 6 && h < 10; });
+            const morningAvg = morningSlots.reduce((s, r) => s + (r.viewers || 0), 0) / morningSlots.length || 0;
+            const otherSlots = LIVE_DATA.filter(r => { const h = parseInt(r.time.split(':')[0]); return h < 6 || h >= 10; });
+            const otherAvg = otherSlots.reduce((s, r) => s + (r.viewers || 0), 0) / otherSlots.length || 0;
+
+            const insights = [
+                { icon: 'fa-trophy', title: '最佳表现日', desc: `${bestDay.date}的${bestDay.time}时段表现最佳，由${bestDay.anchor}直播，获得${bestDay.leads}条留资，建议复盘该时段话术策略。` },
+                { icon: 'fa-clock', title: '早场流量优势', desc: `早场(6-10点)平均观看人数${morningAvg.toFixed(0)}人，比其他时段${otherAvg > 0 ? ((morningAvg / otherAvg - 1) * 100).toFixed(0) + '%' : ''}更高，建议增加早场排班。` },
+                { icon: 'fa-coins', title: '获客成本控制', desc: `当前平均获客成本¥${avgCost.toFixed(2)}，${avgCost < 150 ? '已达标' : '高于目标'}，建议${avgCost > 150 ? '优化话术或调整投放策略' : '继续保持当前策略'}。` },
+                { icon: 'fa-user-check', title: '主播表现差异', desc: '王浩宇在早场表现突出，沈萍晚场转化更稳定，建议根据主播特长优化排班。' }
+            ];
+
+            container.innerHTML = insights.map(i => `
+                <div class="insight-item">
+                    <i class="fas ${i.icon} insight-icon"></i>
+                    <div class="insight-content">
+                        <div class="insight-title">${i.title}</div>
+                        <div class="insight-desc">${i.desc}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 导出数据功能
+        function exportData() {
+            let csv = '日期,抖音号,时间段,主播,观看人数,留资数,获客成本,曝光进入率,平均停留\n';
+            LIVE_DATA.forEach(row => {
+                csv += `${row.date},${row.account},${row.time},${row.anchor},${row.viewers || 0},${row.leads || 0},${row.cost || ''},${row.enterRate || ''},"${row.avgStay || ''}"\n`;
+            });
+
+            const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `直播数据导出_${new Date().toISOString().split('T')[0]}.csv`;
+            link.click();
+        }
+
+        // ============================================
+        // 数据上传功能
+        // ============================================
+        function initDragAndDrop() {
+            const uploadZone = document.getElementById('uploadZone');
+            if (!uploadZone) return;
+
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                uploadZone.addEventListener(eventName, preventDefaults, false);
+                document.body.addEventListener(eventName, preventDefaults, false);
+            });
+
+            ['dragenter', 'dragover'].forEach(eventName => {
+                uploadZone.addEventListener(eventName, highlight, false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                uploadZone.addEventListener(eventName, unhighlight, false);
+            });
+
+            uploadZone.addEventListener('drop', handleDrop, false);
+        }
+
+        function preventDefaults(e) { e.preventDefault(); e.stopPropagation(); }
+
+        function highlight(e) { document.getElementById('uploadZone').classList.add('dragover'); }
+        function unhighlight(e) { document.getElementById('uploadZone').classList.remove('dragover'); }
+
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            if (dt.files.length > 0) handleFile(dt.files[0]);
+        }
+
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (file) handleFile(file);
+        }
+
+        function handleFile(file) {
+            const validTypes = ['.xlsx', '.xls', '.csv'];
+            const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
+
+            if (!validTypes.includes(fileExtension)) {
+                showUploadError('不支持的文件格式，请上传 Excel (.xlsx, .xls) 或 CSV 文件');
+                return;
+            }
+
+            showUploadLoading(file);
+
+            const reader = new FileReader();
+            reader.onprogress = function(e) {
+                if (e.lengthComputable) {
+                    updateUploadProgress(Math.round((e.loaded / e.total) * 100));
+                }
+            };
+
+            reader.onload = function(e) {
+                try {
+                    let data;
+                    if (fileExtension === '.csv') {
+                        data = parseCSV(e.target.result);
+                    } else {
+                        const binary = e.target.result;
+                        const workbook = XLSX.read(binary, { type: 'binary' });
+                        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                        data = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+                    }
+
+                    if (validateData(data)) {
+                        processAndDisplayData(data, file.name);
+                    } else {
+                        showUploadError('数据格式不正确，请确保包含必要的列：日期、主播、观看人数等');
+                    }
+                } catch (error) {
+                    console.error('文件解析错误:', error);
+                    showUploadError('文件解析失败，请检查文件格式是否正确');
+                }
+            };
+
+            reader.onerror = function() { showUploadError('文件读取失败，请重试'); };
+
+            if (fileExtension === '.csv') reader.readAsText(file);
+            else reader.readAsBinaryString(file);
+        }
+
+        function parseCSV(csvText) {
+            const lines = csvText.trim().split('\n');
+            return lines.map(line => {
+                const row = []; let inQuotes = false; let currentValue = '';
+                for (let j = 0; j < line.length; j++) {
+                    const char = line[j];
+                    if (char === '"') inQuotes = !inQuotes;
+                    else if (char === ',' && !inQuotes) { row.push(currentValue.trim()); currentValue = ''; }
+                    else currentValue += char;
+                }
+                row.push(currentValue.trim());
+                return row;
+            });
+        }
+
+        function validateData(data) {
+            if (!data || data.length < 2) return false;
+            const headers = data[0].map(h => h.toString().toLowerCase());
+            const requiredColumns = ['日期', '主播', '观看'];
+            return requiredColumns.some(col => headers.some(h => h.includes(col)));
+        }
+
+        function processAndDisplayData(data, filename) {
+            AppState.liveData = data;
+            AppState.isDataLoaded = true;
+            saveDataToStorage(data, filename);
+            showUploadSuccess(data.length - 1);
+            displayDataTable(data);
+            createAllCharts(data);
+            updateDataStatus(filename);
+            generateSmartAnalysis(data);
+        }
+
+        function showUploadLoading(file) {
+            document.getElementById('uploadZone').innerHTML = `
+                <div class="upload-icon"><i class="fas fa-spinner fa-spin"></i></div>
+                <div class="upload-text">
+                    <h3>正在读取文件...</h3>
+                    <p>${file.name} (${formatFileSize(file.size)})</p>
+                    <div class="progress-bar"><div class="progress-fill" id="uploadProgress"></div></div>
+                </div>`;
+        }
+
+        function updateUploadProgress(percent) {
+            const progressFill = document.getElementById('uploadProgress');
+            if (progressFill) progressFill.style.width = percent + '%';
+        }
+
+        function showUploadSuccess(recordCount) {
+            document.getElementById('uploadZone').innerHTML = `
+                <div class="upload-icon success"><i class="fas fa-check-circle"></i></div>
+                <div class="upload-text">
+                    <h3>文件上传成功</h3>
+                    <p>已成功导入 ${recordCount} 条直播数据记录</p>
+                    <button class="upload-btn" onclick="resetUpload()"><i class="fas fa-sync-alt"></i> 重新上传</button>
+                </div>`;
+            document.getElementById('uploadZone').classList.add('upload-success');
+        }
+
+        function showUploadError(message) {
+            document.getElementById('uploadZone').innerHTML = `
+                <div class="upload-icon error"><i class="fas fa-exclamation-circle"></i></div>
+                <div class="upload-text">
+                    <h3>上传失败</h3>
+                    <p>${message}</p>
+                    <button class="upload-btn" onclick="resetUpload()"><i class="fas fa-redo"></i> 重新尝试</button>
+                </div>`;
+            document.getElementById('uploadZone').classList.add('upload-error');
+        }
+
+        function resetUpload() {
+            const uploadZone = document.getElementById('uploadZone');
+            uploadZone.classList.remove('upload-success', 'upload-error');
+            uploadZone.innerHTML = `
+                <div class="upload-icon"><i class="fas fa-cloud-upload-alt"></i></div>
+                <div class="upload-text">
+                    <h3>拖放或点击上传数据文件</h3>
+                    <p>支持直播数据Excel文件，包含日期、主播、观看人数、互动率、留资数等字段</p>
+                    <button class="upload-btn" onclick="document.getElementById('fileInput').click()"><i class="fas fa-file-excel"></i> 选择Excel文件</button>
+                    <input type="file" id="fileInput" class="file-input" accept=".xlsx,.xls,.csv" onchange="handleFileUpload(event)">
+                    <p class="upload-info"><i class="fas fa-info-circle"></i> 下载 <a href="#" onclick="downloadTemplate()">数据模板文件</a></p>
+                </div>`;
+            initDragAndDrop();
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+        }
+
+        // ============================================
+        // 数据表格显示
+        // ============================================
+        function displayDataTable(data) {
+            const container = document.getElementById('dataTableContainer');
+            const tableBody = document.getElementById('tableBody');
+            if (!container || !tableBody) return;
+
+            container.style.display = 'block';
+            tableBody.innerHTML = '';
+
+            const headers = data[0];
+            const columnMapping = getColumnMapping(headers);
+            const displayLimit = Math.min(data.length, 51);
+
+            for (let i = 1; i < displayLimit; i++) {
+                const row = data[i];
+                if (!row || row.length === 0) continue;
+
+                const date = getColumnValue(row, columnMapping.date, 0);
+                const anchor = getColumnValue(row, columnMapping.anchor, 1);
+                const viewers = parseInt(getColumnValue(row, columnMapping.viewers, 2)) || 0;
+                const watchTime = parseInt(getColumnValue(row, columnMapping.watchTime, 3)) || 0;
+                const interactionRate = parseFloat(getColumnValue(row, columnMapping.interaction, 4)) || 0;
+                const likes = parseInt(getColumnValue(row, columnMapping.likes, 5)) || 0;
+                const leads = parseInt(getColumnValue(row, columnMapping.leads, 6)) || 0;
+                const cost = parseFloat(getColumnValue(row, columnMapping.cost, 7)) || 0;
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${formatDate(date)}</td>
+                    <td>${anchor}</td>
+                    <td>${viewers.toLocaleString()}</td>
+                    <td>${formatDuration(watchTime)}</td>
+                    <td><span class="rate-badge ${getRateClass(interactionRate)}">${interactionRate.toFixed(1)}%</span></td>
+                    <td>${likes.toLocaleString()}</td>
+                    <td><span class="leads-badge">${leads}</span></td>
+                    <td>${cost > 0 ? '¥' + cost.toFixed(2) : '-'}</td>`;
+                tableBody.appendChild(tr);
+            }
+
+            if (data.length > 51) {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td colspan="8" class="table-more"><i class="fas fa-info-circle"></i> 还有 ${data.length - 51} 条数据未显示</td>`;
+                tableBody.appendChild(tr);
+            }
+        }
+
+        function getColumnMapping(headers) {
+            const mapping = { date: -1, anchor: -1, viewers: -1, watchTime: -1, interaction: -1, likes: -1, leads: -1, cost: -1 };
+            const headerKeywords = {
+                date: ['日期', '时间', 'date', 'time'],
+                anchor: ['主播', '主播名称', 'anchor', 'name', '主播姓名'],
+                viewers: ['观看人数', '观众', 'viewers', '观看', 'uv'],
+                watchTime: ['人均观看', '观看时长', 'duration', 'watch time', '平均观看'],
+                interaction: ['互动率', '互动', 'interaction', 'engagement'],
+                likes: ['点赞', '点赞数', 'likes', '赞'],
+                leads: ['留资', '留资数', '线索', 'leads', '表单'],
+                cost: ['成本', '线索成本', 'cost', '获客成本', 'cpl']
+            };
+
+            headers.forEach((header, index) => {
+                const lowerHeader = header.toString().toLowerCase();
+                for (const [key, keywords] of Object.entries(headerKeywords)) {
+                    if (keywords.some(kw => lowerHeader.includes(kw.toLowerCase()))) { mapping[key] = index; break; }
+                }
+            });
+            return mapping;
+        }
+
+        function getColumnValue(row, index, defaultIndex) {
+            if (index >= 0 && index < row.length) return row[index];
+            if (defaultIndex >= 0 && defaultIndex < row.length) return row[defaultIndex];
+            return '';
+        }
+
+        function formatDate(dateValue) {
+            if (!dateValue) return '-';
+            if (typeof dateValue === 'number' && dateValue > 40000) {
+                const excelEpoch = new Date(1899, 11, 30);
+                return new Date(excelEpoch.getTime() + dateValue * 24 * 60 * 60 * 1000).toLocaleDateString('zh-CN');
+            }
+            const date = new Date(dateValue);
+            if (!isNaN(date.getTime())) return date.toLocaleDateString('zh-CN');
+            return dateValue.toString();
+        }
+
+        function formatDuration(seconds) {
+            if (!seconds || isNaN(seconds)) return '-';
+            if (seconds < 60) return seconds + '秒';
+            else if (seconds < 3600) return Math.floor(seconds / 60) + '分' + (seconds % 60 > 0 ? (seconds % 60) + '秒' : '');
+            else return Math.floor(seconds / 3600) + '小时' + (Math.floor((seconds % 3600) / 60) > 0 ? Math.floor((seconds % 3600) / 60) + '分' : '');
+        }
+
+        function getRateClass(rate) {
+            if (rate >= 5) return 'rate-high';
+            if (rate >= 3) return 'rate-medium';
+            return 'rate-low';
+        }
+
+        // ============================================
+        // 图表生成
+        // ============================================
+        function createAllCharts(data) {
+            const container = document.getElementById('chartsContainer');
+            if (container) container.style.display = 'block';
+
+            Object.values(AppState.charts).forEach(chart => { if (chart) chart.destroy(); });
+
+            const stats = extractStatistics(data);
+            createPerformanceChart(stats);
+            createLeadsChart(stats);
+            createInteractionChart(stats);
+            createCostChart(stats);
+        }
+
+        function extractStatistics(data) {
+            const anchors = {};
+            const headers = data[0];
+            const mapping = getColumnMapping(headers);
+
+            for (let i = 1; i < data.length; i++) {
+                const row = data[i];
+                if (!row || row.length === 0) continue;
+
+                const anchor = getColumnValue(row, mapping.anchor, 1);
+                const viewers = parseInt(getColumnValue(row, mapping.viewers, 2)) || 0;
+                const watchTime = parseInt(getColumnValue(row, mapping.watchTime, 3)) || 0;
+                const interactionRate = parseFloat(getColumnValue(row, mapping.interaction, 4)) || 0;
+                const likes = parseInt(getColumnValue(row, mapping.likes, 5)) || 0;
+                const leads = parseInt(getColumnValue(row, mapping.leads, 6)) || 0;
+                const cost = parseFloat(getColumnValue(row, mapping.cost, 7)) || 0;
+
+                if (!anchors[anchor]) anchors[anchor] = { name: anchor, totalViewers: 0, totalWatchTime: 0, totalLikes: 0, totalLeads: 0, totalCost: 0, interactionRates: [], count: 0 };
+                anchors[anchor].totalViewers += viewers;
+                anchors[anchor].totalWatchTime += watchTime;
+                anchors[anchor].totalLikes += likes;
+                anchors[anchor].totalLeads += leads;
+                anchors[anchor].totalCost += cost;
+                anchors[anchor].interactionRates.push(interactionRate);
+                anchors[anchor].count++;
+            }
+
+            Object.values(anchors).forEach(anchor => {
+                anchor.avgViewers = Math.round(anchor.totalViewers / anchor.count);
+                anchor.avgWatchTime = Math.round(anchor.totalWatchTime / anchor.count);
+                anchor.avgInteractionRate = anchor.interactionRates.reduce((a, b) => a + b, 0) / anchor.interactionRates.length;
+                anchor.avgCost = anchor.totalLeads > 0 ? anchor.totalCost / anchor.totalLeads : 0;
+            });
+
+            return { anchors: Object.values(anchors) };
+        }
+
+        function createPerformanceChart(stats) {
+            const ctx = document.getElementById('performanceChart');
+            if (!ctx) return;
+
+            AppState.charts.performance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: stats.anchors.map(a => a.name),
+                    datasets: [{
+                        label: '平均观看人数',
+                        data: stats.anchors.map(a => a.avgViewers),
+                        backgroundColor: 'rgba(0, 243, 255, 0.6)',
+                        borderColor: 'rgba(0, 243, 255, 1)',
+                        borderWidth: 1
+                    }, {
+                        label: '平均观看时长(分钟)',
+                        data: stats.anchors.map(a => Math.round(a.avgWatchTime / 60)),
+                        backgroundColor: 'rgba(157, 0, 255, 0.6)',
+                        borderColor: 'rgba(157, 0, 255, 1)',
+                        borderWidth: 1,
+                        yAxisID: 'y1'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    scales: {
+                        y: { type: 'linear', display: true, position: 'left', beginAtZero: true, grid: { color: 'rgba(255, 255, 255, 0.1)' }, ticks: { color: 'rgba(255, 255, 255, 0.7)' } },
+                        y1: { type: 'linear', display: true, position: 'right', beginAtZero: true, grid: { drawOnChartArea: false }, ticks: { color: 'rgba(255, 255, 255, 0.7)' } },
+                        x: { grid: { color: 'rgba(255, 255, 255, 0.1)' }, ticks: { color: 'rgba(255, 255, 255, 0.7)' } }
+                    },
+                    plugins: { legend: { labels: { color: 'rgba(255, 255, 255, 0.7)' } } }
+                }
+            });
+        }
+
+        function createLeadsChart(stats) {
+            const ctx = document.getElementById('leadsChart');
+            if (!ctx) return;
+
+            const sortedAnchors = [...stats.anchors].sort((a, b) => b.totalLeads - a.totalLeads);
+
+            AppState.charts.leads = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: sortedAnchors.map(a => a.name),
+                    datasets: [{
+                        label: '总留资数',
+                        data: sortedAnchors.map(a => a.totalLeads),
+                        borderColor: 'rgba(255, 0, 255, 1)',
+                        backgroundColor: 'rgba(255, 0, 255, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4,
+                        pointBackgroundColor: 'rgba(255, 0, 255, 1)',
+                        pointRadius: 5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: 'rgba(255, 255, 255, 0.1)' }, ticks: { color: 'rgba(255, 255, 255, 0.7)' } },
+                        x: { grid: { color: 'rgba(255, 255, 255, 0.1)' }, ticks: { color: 'rgba(255, 255, 255, 0.7)' } }
+                    },
+                    plugins: { legend: { labels: { color: 'rgba(255, 255, 255, 0.7)' } } }
+                }
+            });
+        }
+
+        function createInteractionChart(stats) {
+            const ctx = document.getElementById('interactionChart');
+            if (!ctx) return;
+
+            const ranges = { '优秀(≥5%)': 0, '良好(3-5%)': 0, '一般(<3%)': 0 };
+            stats.anchors.forEach(anchor => {
+                const rate = anchor.avgInteractionRate;
+                if (rate >= 5) ranges['优秀(≥5%)']++;
+                else if (rate >= 3) ranges['良好(3-5%)']++;
+                else ranges['一般(<3%)']++;
+            });
+
+            AppState.charts.interaction = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(ranges),
+                    datasets: [{
+                        data: Object.values(ranges),
+                        backgroundColor: ['rgba(0, 255, 157, 0.8)', 'rgba(0, 243, 255, 0.8)', 'rgba(255, 99, 132, 0.8)'],
+                        borderColor: ['rgba(0, 255, 157, 1)', 'rgba(0, 243, 255, 1)', 'rgba(255, 99, 132, 1)'],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom', labels: { color: 'rgba(255, 255, 255, 0.7)' } } }
+                }
+            });
+        }
+
+        function createCostChart(stats) {
+            const ctx = document.getElementById('costChart');
+            if (!ctx) return;
+
+            const validAnchors = stats.anchors.filter(a => a.avgCost > 0);
+            if (validAnchors.length === 0) {
+                ctx.parentElement.innerHTML = '<p class="no-data-tip"><i class="fas fa-info-circle"></i> 暂无成本数据</p>';
+                return;
+            }
+
+            AppState.charts.cost = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: validAnchors.map(a => a.name),
+                    datasets: [{
+                        label: '平均线索成本 (元)',
+                        data: validAnchors.map(a => a.avgCost.toFixed(2)),
+                        backgroundColor: validAnchors.map(a => a.avgCost <= 80 ? 'rgba(0, 255, 157, 0.6)' : a.avgCost <= 100 ? 'rgba(0, 243, 255, 0.6)' : 'rgba(255, 99, 132, 0.6)'),
+                        borderColor: validAnchors.map(a => a.avgCost <= 80 ? 'rgba(0, 255, 157, 1)' : a.avgCost <= 100 ? 'rgba(0, 243, 255, 1)' : 'rgba(255, 99, 132, 1)'),
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    scales: {
+                        x: { beginAtZero: true, grid: { color: 'rgba(255, 255, 255, 0.1)' }, ticks: { color: 'rgba(255, 255, 255, 0.7)', callback: function(value) { return '¥' + value; } } },
+                        y: { grid: { color: 'rgba(255, 255, 255, 0.1)' }, ticks: { color: 'rgba(255, 255, 255, 0.7)' } }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+
+        // ============================================
+        // 本地存储
+        // ============================================
+        function saveDataToStorage(data, filename) {
+            try {
+                const storageData = { data: data, filename: filename, uploadTime: new Date().toISOString() };
+                localStorage.setItem('beibei_live_data', JSON.stringify(storageData));
+            } catch (error) { console.warn('本地存储保存失败:', error); }
+        }
+
+        function loadDataFromStorage() {
+            try {
+                const stored = localStorage.getItem('beibei_live_data');
+                if (stored) {
+                    const storageData = JSON.parse(stored);
+                    AppState.liveData = storageData.data;
+                    AppState.isDataLoaded = true;
+                    displayDataTable(storageData.data);
+                    createAllCharts(storageData.data);
+                    updateDataStatus(storageData.filename);
+                    showDataRestoredNotification(storageData.filename);
+                }
+            } catch (error) { console.warn('本地存储读取失败:', error); }
+        }
+
+        function showDataRestoredNotification(filename) {
+            const container = document.getElementById('uploadZone');
+            if (container) {
+                container.innerHTML = `
+                    <div class="upload-icon success"><i class="fas fa-database"></i></div>
+                    <div class="upload-text">
+                        <h3>已恢复上次的数据</h3>
+                        <p>文件: ${filename}</p>
+                        <button class="upload-btn" onclick="resetUpload()"><i class="fas fa-sync-alt"></i> 上传新文件</button>
+                    </div>`;
+                container.classList.add('upload-success');
+            }
+            document.getElementById('dataTableContainer').style.display = 'block';
+            document.getElementById('chartsContainer').style.display = 'block';
+        }
+
+        function updateDataStatus(filename) {
+            const statusEl = document.getElementById('dataStatus');
+            if (statusEl) {
+                statusEl.textContent = filename ? `已加载: ${filename}` : '本地存储';
+                statusEl.classList.add('status-active');
+            }
+        }
+
+        // ============================================
+        // 数据模板下载
+        // ============================================
+        function downloadTemplate() {
+            const templateData = [
+                ['日期', '主播', '观看人数', '人均观看时长(秒)', '互动率(%)', '点赞数', '留资数', '线索成本(元)'],
+                ['2026-03-27', '主播A', 1847, 154, 3.2, 52800, 47, 86.5],
+                ['2026-03-26', '主播B', 2156, 132, 2.8, 42100, 32, 94.2],
+                ['2026-03-25', '主播A', 1923, 168, 3.5, 61200, 52, 82.1],
+                ['2026-03-24', '主播C', 1789, 121, 2.1, 28700, 21, 105.3]
+            ];
+
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet(templateData);
+            ws['!cols'] = [{ wch: 12 }, { wch: 10 }, { wch: 12 }, { wch: 18 }, { wch: 12 }, { wch: 10 }, { wch: 10 }, { wch: 14 }];
+            XLSX.utils.book_append_sheet(wb, ws, '直播数据模板');
+            XLSX.writeFile(wb, '直播数据模板.xlsx');
+        }
+
+        // ============================================
+        // 智能分析
+        // ============================================
+        function generateSmartAnalysis(data) {
+            const stats = extractStatistics(data);
+            const suggestions = [];
+
+            const sortedByLeads = [...stats.anchors].sort((a, b) => b.totalLeads - a.totalLeads);
+            if (sortedByLeads.length >= 2) {
+                const diff = sortedByLeads[0].totalLeads - sortedByLeads[sortedByLeads.length - 1].totalLeads;
+                if (diff > 10) {
+                    suggestions.push({ icon: 'fa-trophy', title: '优秀主播经验分享', content: `${sortedByLeads[0].name} 的留资表现最佳（${sortedByLeads[0].totalLeads}条），建议安排经验分享会。` });
+                }
+            }
+
+            const lowInteractionAnchors = stats.anchors.filter(a => a.avgInteractionRate < 2.5);
+            if (lowInteractionAnchors.length > 0) {
+                suggestions.push({ icon: 'fa-comments', title: '互动率提升建议', content: `${lowInteractionAnchors.map(a => a.name).join('、')} 的互动率偏低，建议加强互动话术培训。` });
+            }
+
+            const highCostAnchors = stats.anchors.filter(a => a.avgCost > 100);
+            if (highCostAnchors.length > 0) {
+                suggestions.push({ icon: 'fa-coins', title: '线索成本优化', content: `${highCostAnchors.map(a => a.name).join('、')} 的线索成本较高，建议优化投放时段或调整话术策略。` });
+            }
+
+            const container = document.getElementById('analysisSuggestions');
+            if (container && suggestions.length > 0) {
+                container.innerHTML = suggestions.map(s => `
+                    <div class="suggestion-item">
+                        <div class="suggestion-icon"><i class="fas ${s.icon}"></i></div>
+                        <div class="suggestion-content"><h4>${s.title}</h4><p>${s.content}</p></div>
+                    </div>`).join('');
+            }
+        }
+
+        // ============================================
+        // PPT 在线预览功能
+        // ============================================
+        const PPT_CONTENT = {
+            title: '宁波德曼压缩机抖音直播运营实战培训',
+            subtitle: '新规应用与获客增长',
+            slides: [
+                {
+                    title: '第一章：直播基础认知与德曼品牌定位',
+                    content: [
+                        { type: 'heading', text: '德曼品牌核心价值' },
+                        { type: 'bullet', text: '宁波德曼专注空压机15年，浙江市场占有率90%' },
+                        { type: 'bullet', text: '以节能静音技术领先行业，获多项国家专利' },
+                        { type: 'bullet', text: 'B2B工业品营销新渠道，精准触达决策者' },
+                        { type: 'divider' },
+                        { type: 'heading', text: '空压机产品核心优势' },
+                        { type: 'bullet', text: '德曼空压机节能率达40%+' },
+                        { type: 'bullet', text: '静音设计符合工业场景需求' },
+                        { type: 'bullet', text: '支持定制化解决方案，适配江浙沪粤企业需求' },
+                        { type: 'divider' },
+                        { type: 'heading', text: '目标客户画像（江浙沪粤）' },
+                        { type: 'bullet', text: '制造型企业、汽修厂、工程公司' },
+                        { type: 'bullet', text: '注重成本控制与设备稳定性' },
+                        { type: 'bullet', text: '有即时采购需求的决策者' }
+                    ]
+                },
+                {
+                    title: '第二章：2026抖音新规解读与m2m3流量共振',
+                    content: [
+                        { type: 'heading', text: '新规核心变化：流量分配调整' },
+                        { type: 'bullet', text: '2026抖音新规强化内容质量与用户互动权重' },
+                        { type: 'bullet', text: '付费流量与自然流量可形成m2m3共振效应' },
+                        { type: 'bullet', text: '提升整体曝光，降低获客成本' },
+                        { type: 'divider' },
+                        { type: 'heading', text: 'm2m3流量共振的定义与价值' },
+                        { type: 'bullet', text: 'm2m3流量共振指付费流量带动自然流量的二次、三次传播' },
+                        { type: 'bullet', text: '降低获客成本，适合德曼精准获客需求' },
+                        { type: 'bullet', text: '通过优质内容触发算法推荐，形成流量放大效应' },
+                        { type: 'divider' },
+                        { type: 'heading', text: '德曼直播如何应用m2m3共振' },
+                        { type: 'bullet', text: '通过精准付费投放（江浙沪粤）启动直播间' },
+                        { type: 'bullet', text: '触发共振后逐步减少投放，最大化自然流量收益' },
+                        { type: 'bullet', text: '持续优化内容质量，提升用户停留与互动' }
+                    ]
+                },
+                {
+                    title: '第三章：小风车获客核心技巧与实战',
+                    content: [
+                        { type: 'heading', text: '小风车设置要点' },
+                        { type: 'bullet', text: '封面标题：突出"免费"/"报价"/"方案"等利益点' },
+                        { type: 'bullet', text: '落地页设计：简洁明了，突出德曼品牌与产品优势' },
+                        { type: 'bullet', text: '表单字段简化：只留姓名、手机号、公司名，降低填写门槛' },
+                        { type: 'divider' },
+                        { type: 'heading', text: '小风车引导话术模板' },
+                        { type: 'quote', text: '【痛点+方案+行动】各位老板，是不是觉得现在空压机电费越来越高？德曼节能空压机帮您省电40%，点击屏幕下方小风车，免费获取专属节能方案！' },
+                        { type: 'divider' },
+                        { type: 'heading', text: '实战案例：宁波XX制造厂' },
+                        { type: 'bullet', text: '背景：宁波XX制造厂月均电费超5万元' },
+                        { type: 'bullet', text: '方案：推荐德曼30KW永磁变频空压机' },
+                        { type: 'bullet', text: '结果：月均节省电费2万元，3个月回本' },
+                        { type: 'bullet', text: '话术要点：用真实数据说话，强调ROI' }
+                    ]
+                },
+                {
+                    title: '第四章：付费流量投放策略（江浙沪粤重点）',
+                    content: [
+                        { type: 'heading', text: '定向设置策略' },
+                        { type: 'bullet', text: '地域定向：江浙沪粤四省重点投放' },
+                        { type: 'bullet', text: '人群定向：制造型企业主、工厂采购、设备管理人员' },
+                        { type: 'bullet', text: '兴趣标签：工业设备、机械制造、节能环保' },
+                        { type: 'divider' },
+                        { type: 'heading', text: '投放节奏控制' },
+                        { type: 'bullet', text: '开播前预热：提前30分钟启动小额投放，积累初始人气' },
+                        { type: 'bullet', text: '直播中加热：根据在线人数动态调整，峰值时加大投放' },
+                        { type: 'bullet', text: '稳定期维持：触发m2m3共振后，逐步降低付费比例' },
+                        { type: 'divider' },
+                        { type: 'heading', text: 'ROI优化要点' },
+                        { type: 'bullet', text: '关注留资成本而非单纯曝光量' },
+                        { type: 'bullet', text: '单条线索成本控制在150元以内为合格' },
+                        { type: 'bullet', text: '每日复盘投放数据，及时调整定向与出价' }
+                    ]
+                },
+                {
+                    title: '第五章：主播直播规范与话术模板',
+                    content: [
+                        { type: 'heading', text: '直播前准备清单' },
+                        { type: 'check', text: '设备调试：手机/相机、补光灯、麦克风测试正常' },
+                        { type: 'check', text: '产品参数：熟悉当期主推机型的技术参数与价格' },
+                        { type: 'check', text: '小风车设置：检查落地页链接与表单是否正常' },
+                        { type: 'check', text: '案例素材：准备2-3个江浙沪粤客户成功案例' },
+                        { type: 'divider' },
+                        { type: 'heading', text: '直播中流程模板' },
+                        { type: 'bullet', text: '开场欢迎（2分钟）：热情问候，引导关注' },
+                        { type: 'bullet', text: '品牌介绍（3分钟）：德曼15年专注，浙江市场占有率90%' },
+                        { type: 'bullet', text: '产品演示（10分钟）：核心卖点展示，FABE法则应用' },
+                        { type: 'bullet', text: '小风车引导（3分钟）：痛点切入，行动号召' },
+                        { type: 'bullet', text: '互动答疑（10分钟）：回答评论问题，专业解答' },
+                        { type: 'bullet', text: '结束预告（2分钟）：预告下次直播，引导预约' },
+                        { type: 'divider' },
+                        { type: 'heading', text: '核心话术示例（产品介绍）' },
+                        { type: 'quote', text: '这款德曼节能空压机，江浙沪的XX工厂用了后每3000小时省出一台单级机的电费！节能率40%+，噪音低于65分贝，完全符合工厂环保要求。现在点击小风车，免费获取报价单！' }
+                    ]
+                },
+                {
+                    title: '第六章：考核指标与成长路径',
+                    content: [
+                        { type: 'heading', text: '核心KPI指标' },
+                        { type: 'bullet', text: '观看人数：场均观看≥1000人，峰值在线≥50人' },
+                        { type: 'bullet', text: '互动率：评论率≥3%，点赞数≥观看人数的10%' },
+                        { type: 'bullet', text: '留资数：场均留资≥20条，留资成本≤150元/条' },
+                        { type: 'bullet', text: '转化率：留资转私信率≥30%，私信转订单率≥10%' },
+                        { type: 'divider' },
+                        { type: 'heading', text: '主播能力分级标准' },
+                        { type: 'bullet', text: '初级主播：能完整执行直播流程，留资成本≤200元' },
+                        { type: 'bullet', text: '中级主播：灵活应对互动，留资成本≤150元，场均留资≥30条' },
+                        { type: 'bullet', text: '高级主播：具备控场与转化能力，留资成本≤100元，可带新人' },
+                        { type: 'divider' },
+                        { type: 'heading', text: '能力提升路径' },
+                        { type: 'check', text: '每周参加团队复盘会，学习优秀案例' },
+                        { type: 'check', text: '每日拆解1-2个同行优秀直播间' },
+                        { type: 'check', text: '定期更新话术库，迭代优化' },
+                        { type: 'check', text: '参与月度培训，学习平台新规与新玩法' }
+                    ]
+                },
+                {
+                    title: '第七章：培训总结与后续支持',
+                    content: [
+                        { type: 'heading', text: '核心要点回顾' },
+                        { type: 'bullet', text: '德曼品牌优势：15年专注、节能40%+、浙江市场占有率90%' },
+                        { type: 'bullet', text: '流量策略：m2m3共振，付费流量启动+自然流量放大' },
+                        { type: 'bullet', text: '获客关键：小风车设置+引导话术+客户案例' },
+                        { type: 'bullet', text: '主播成长：流程规范+话术熟练+数据复盘' },
+                        { type: 'divider' },
+                        { type: 'heading', text: '后续支持体系' },
+                        { type: 'bullet', text: '话术手册：电子版随时查阅，定期更新' },
+                        { type: 'bullet', text: '案例库：每周新增2-3个真实客户案例' },
+                        { type: 'bullet', text: '数据看板：每日直播数据自动统计与分析' },
+                        { type: 'bullet', text: '答疑渠道：工作群实时答疑，每周五集中培训' },
+                        { type: 'divider' },
+                        { type: 'heading', text: 'Q&A 常见问题' },
+                        { type: 'bullet', text: 'Q: 直播间人少怎么办？A: 检查封面与标题吸引力，加大预热投放' },
+                        { type: 'bullet', text: 'Q: 留资成本高怎么优化？A: 优化小风车落地页，调整引导话术时机' },
+                        { type: 'bullet', text: 'Q: 遇到恶意评论如何处理？A: 冷静应对，不要被带节奏，必要时拉黑' }
+                    ]
+                },
+                {
+                    title: '附录：实用工具与资源',
+                    content: [
+                        { type: 'heading', text: '直播工具推荐' },
+                        { type: 'bullet', text: '提词器：Teleprompter APP，悬浮窗显示话术' },
+                        { type: 'bullet', text: '数据分析：抖音电商罗盘、蝉妈妈、飞瓜数据' },
+                        { type: 'bullet', text: '封面制作：稿定设计、Canva、创客贴' },
+                        { type: 'bullet', text: '话术整理：飞书文档、腾讯文档、石墨文档' },
+                        { type: 'divider' },
+                        { type: 'heading', text: '学习资源' },
+                        { type: 'bullet', text: '优秀同行直播间：每日拆解1-2个（已整理案例库）' },
+                        { type: 'bullet', text: '行业资讯：空压机行业网、压缩机杂志、中国通用机械工业协会' },
+                        { type: 'bullet', text: '平台规则：抖音电商学习中心、抖音直播规则中心' },
+                        { type: 'bullet', text: '内部培训：每周五下午14:00团队复盘会' },
+                        { type: 'divider' },
+                        { type: 'heading', text: '紧急联系' },
+                        { type: 'bullet', text: '运营支持：北北 beibei@deman.com' },
+                        { type: 'bullet', text: '技术问题：IT部门 400-xxx-xxxx' },
+                        { type: 'bullet', text: '投诉建议：直接私信主管领导' }
+                    ]
+                }
+            ]
+        };
+
+        // ============================================
+        // 直播数据 - 2026年3月真实数据
+        // ============================================
+        const LIVE_DATA = [
+            { date: '2026-03-01', account: '德曼节能压缩服务商', time: '8:00-10:00', duration: '2h', anchor: '王浩宇', leads: 4, avgStay: '27秒', viewers: 1101, peak: 25, clicks: 17, enterRate: 0.0746, newFans: 12, oneMinView: 64, adSpend: 533, cost: 133.25 },
+            { date: '2026-03-01', account: '德曼节能压缩服务商', time: '12:30-14:30', duration: '2h', anchor: '王浩宇', leads: 4, avgStay: '27秒', viewers: 843, peak: 17, clicks: 19, enterRate: 0.0582, newFans: 6, oneMinView: 0, adSpend: 418, cost: 104.50 },
+            { date: '2026-03-01', account: '德曼节能压缩服务商', time: '15:00-17:00', duration: '2h', anchor: '沈萍', leads: 6, avgStay: '27秒', viewers: 412, peak: 9, clicks: 7, enterRate: 0.0368, newFans: 1, oneMinView: 38, adSpend: 383, cost: 63.83 },
+            { date: '2026-03-01', account: '德曼节能压缩服务商', time: '17:00-19:00', duration: '2h', anchor: '虞瑜', leads: 6, avgStay: '27秒', viewers: 655, peak: 11, clicks: 4, enterRate: 0.0527, newFans: 3, oneMinView: 39, adSpend: 455, cost: 75.83 },
+            { date: '2026-03-01', account: '德曼节能压缩服务商', time: '19:00-21:00', duration: '2h', anchor: '沈萍', leads: 6, avgStay: '33秒', viewers: 544, peak: 10, clicks: 14, enterRate: 0.0420, newFans: 1, oneMinView: 44, adSpend: 428, cost: 71.33 },
+            { date: '2026-03-01', account: '德曼节能压缩服务商', time: '21:00-23:00', duration: '2h', anchor: '虞瑜', leads: 8, avgStay: '36秒', viewers: 665, peak: 16, clicks: 18, enterRate: 0.0345, newFans: 6, oneMinView: 94, adSpend: 690, cost: 86.25 },
+            { date: '2026-03-03', account: '德曼节能压缩服务商', time: '8:00-10:00', duration: '2h', anchor: '虞瑜', leads: 8, avgStay: '55秒', viewers: 646, peak: 21, clicks: 17, enterRate: 0.0485, newFans: 12, oneMinView: 58, adSpend: 539, cost: 67.38 },
+            { date: '2026-03-03', account: '德曼节能压缩服务商', time: '12:30-14:30', duration: '2h', anchor: '虞瑜', leads: 3, avgStay: '45秒', viewers: 465, peak: 14, clicks: 13, enterRate: 0.0313, newFans: 4, oneMinView: 34, adSpend: 474, cost: 158.00 },
+            { date: '2026-03-03', account: '德曼节能压缩服务商', time: '15:00-17:00', duration: '2h', anchor: '沈萍', leads: 5, avgStay: '1分2秒', viewers: 258, peak: 11, clicks: 17, enterRate: 0.0331, newFans: 1, oneMinView: 27, adSpend: 293, cost: 58.60 },
+            { date: '2026-03-03', account: '德曼节能压缩服务商', time: '17:00-19:00', duration: '2h', anchor: '王浩宇', leads: 1, avgStay: '22秒', viewers: 508, peak: 10, clicks: 10, enterRate: 0.0587, newFans: 4, oneMinView: 32, adSpend: 358, cost: 358.00 },
+            { date: '2026-03-03', account: '德曼节能压缩服务商', time: '19:00-21:00', duration: '2h', anchor: '沈萍', leads: 8, avgStay: '50秒', viewers: 649, peak: 19, clicks: 16, enterRate: 0.0454, newFans: 5, oneMinView: 30, adSpend: 722, cost: 90.25 },
+            { date: '2026-03-03', account: '德曼节能压缩服务商', time: '21:00-23:00', duration: '2h', anchor: '王浩宇', leads: 4, avgStay: '58秒', viewers: 564, peak: 23, clicks: 8, enterRate: 0.0480, newFans: 2, oneMinView: 31, adSpend: 354, cost: 88.50 },
+            { date: '2026-03-05', account: '德曼节能压缩服务商', time: '8:00-10:00', duration: '2h', anchor: '虞瑜', leads: 8, avgStay: '56秒', viewers: 442, peak: 12, clicks: 7, enterRate: 0.0471, newFans: 5, oneMinView: 48, adSpend: 400, cost: 50.00 },
+            { date: '2026-03-05', account: '德曼节能压缩服务商', time: '12:45-14:45', duration: '2h', anchor: '王浩宇', leads: 2, avgStay: '30秒', viewers: 479, peak: 11, clicks: 10, enterRate: 0.0641, newFans: 3, oneMinView: 27, adSpend: 252, cost: 126.00 },
+            { date: '2026-03-05', account: '德曼节能压缩服务商', time: '14:45-16:45', duration: '2h', anchor: '沈萍', leads: 3, avgStay: '38秒', viewers: 563, peak: 14, clicks: 4, enterRate: 0.0498, newFans: 4, oneMinView: 30, adSpend: 319, cost: 106.33 },
+            { date: '2026-03-05', account: '德曼节能压缩服务商', time: '16:45-17:45', duration: '1h', anchor: '王浩宇', leads: 5, avgStay: '45秒', viewers: 607, peak: 13, clicks: 7, enterRate: 0.0782, newFans: 3, oneMinView: 37, adSpend: 234.53, cost: 46.91 },
+            { date: '2026-03-06', account: '德曼节能压缩服务商', time: '14:00-16:00', duration: '2h', anchor: '虞瑜', leads: 3, avgStay: '47秒', viewers: 341, peak: 12, clicks: 3, enterRate: 0.0425, newFans: 5, oneMinView: 32, adSpend: 300, cost: 100.00 },
+            { date: '2026-03-06', account: '德曼节能压缩服务商', time: '16:00-18:00', duration: '2h', anchor: '沈萍', leads: 9, avgStay: '51秒', viewers: 504, peak: 14, clicks: 7, enterRate: 0.0434, newFans: 6, oneMinView: 53, adSpend: 354, cost: 39.33 },
+            { date: '2026-03-06', account: '德曼节能压缩服务商', time: '18:00-20:00', duration: '2h', anchor: '虞瑜', leads: 7, avgStay: '39秒', viewers: 409, peak: 10, clicks: 8, enterRate: 0.0265, newFans: 1, oneMinView: 33, adSpend: 405, cost: 57.86 },
+            { date: '2026-03-06', account: '德曼节能压缩服务商', time: '20:00-22:00', duration: '2h', anchor: '沈萍', leads: 7, avgStay: '33秒', viewers: 707, peak: 13, clicks: 15, enterRate: 0.0330, newFans: 5, oneMinView: 53, adSpend: 610, cost: 87.14 },
+            { date: '2026-03-07', account: '德曼节能压缩服务商', time: '6:00-9:00', duration: '3h', anchor: '虞瑜', leads: 6, avgStay: '26秒', viewers: 2309, peak: 26, clicks: 9, enterRate: 0.1441, newFans: 21, oneMinView: 100, adSpend: 492, cost: 82.00 },
+            { date: '2026-03-07', account: '德曼节能压缩服务商', time: '10:00-11:30', duration: '1.5h', anchor: '虞瑜', leads: 2, avgStay: '29秒', viewers: 283, peak: 8, clicks: 2, enterRate: 0.0850, newFans: 0, oneMinView: 15, adSpend: 95, cost: 47.50 },
+            { date: '2026-03-07', account: '德曼节能压缩服务商', time: '12:30-15:30', duration: '3h', anchor: '成志颖', leads: 9, avgStay: '1分17秒', viewers: 535, peak: 13, clicks: 17, enterRate: 0.0392, newFans: 7, oneMinView: 69, adSpend: 543.50, cost: 60.39 },
+            { date: '2026-03-07', account: '宁波德曼压缩机有限公司', time: '6:00-8:00', duration: '2h', anchor: '王浩宇', leads: 4, avgStay: '18秒', viewers: 2007, peak: 30, clicks: 7, enterRate: 0.1794, newFans: 10, oneMinView: 66, adSpend: 459, cost: 114.75 },
+            { date: '2026-03-08', account: '宁波德曼压缩机有限公司', time: '6:30-8:00', duration: '1.5h', anchor: '王浩宇', leads: 2, avgStay: '17秒', viewers: 1867, peak: 22, clicks: 3, enterRate: 0.3710, newFans: 6, oneMinView: 36, adSpend: 203, cost: 101.50 },
+            { date: '2026-03-14', account: '德曼节能压缩服务商', time: '21:00-23:00', duration: '2h', anchor: '虞瑜', leads: 8, avgStay: '46秒', viewers: 7938, peak: 2738, clicks: 64, enterRate: 0.3445, newFans: 22, oneMinView: 1149, adSpend: 622, cost: 77.75 },
+            { date: '2026-03-15', account: '宁波德曼压缩机有限公司', time: '6:00-8:00', duration: '2h', anchor: '王浩宇', leads: 3, avgStay: '17秒', viewers: 3178, peak: 28, clicks: 5, enterRate: 0.3389, newFans: 4, oneMinView: 58, adSpend: 416, cost: 138.67 },
+            { date: '2026-03-16', account: '宁波德曼压缩机有限公司', time: '6:00-8:00', duration: '2h', anchor: '王浩宇', leads: 1, avgStay: '17秒', viewers: 3607, peak: 33, clicks: 8, enterRate: 0.3649, newFans: 10, oneMinView: 84, adSpend: 381, cost: 381.00 },
+            { date: '2026-03-17', account: '宁波德曼压缩机有限公司', time: '6:00-8:00', duration: '2h', anchor: '王浩宇', leads: 9, avgStay: '18秒', viewers: 3308, peak: 29, clicks: 15, enterRate: 0.1853, newFans: 21, oneMinView: 113, adSpend: 666, cost: 74.00 },
+            { date: '2026-03-18', account: '宁波德曼压缩机有限公司', time: '6:00-8:00', duration: '2h', anchor: '王浩宇', leads: 5, avgStay: '15秒', viewers: 2597, peak: 22, clicks: 15, enterRate: 0.2976, newFans: 8, oneMinView: 54, adSpend: 374, cost: 74.80 },
+            { date: '2026-03-19', account: '宁波德曼压缩机有限公司', time: '6:00-8:00', duration: '2h', anchor: '王浩宇', leads: 2, avgStay: '21秒', viewers: 2408, peak: 23, clicks: 13, enterRate: 0.2456, newFans: 10, oneMinView: 70, adSpend: 379, cost: 189.50 },
+            { date: '2026-03-20', account: '宁波德曼压缩机有限公司', time: '6:30-8:00', duration: '1.5h', anchor: '王浩宇', leads: 2, avgStay: '17秒', viewers: 1867, peak: 22, clicks: 3, enterRate: 0.3710, newFans: 6, oneMinView: 36, adSpend: 203, cost: 101.50 },
+            { date: '2026-03-21', account: '宁波德曼压缩机有限公司', time: '6:30-8:00', duration: '1.5h', anchor: '王浩宇', leads: 2, avgStay: '17秒', viewers: 1867, peak: 22, clicks: 3, enterRate: 0.3710, newFans: 6, oneMinView: 36, adSpend: 203, cost: 101.50 }
+        ];
+
+        // 话术手册内容数据
+        const MANUAL_CONTENT = {
+            anchor: {
+                title: '主播话术手册',
+                sections: [
+                    {
+                        title: '第一章：开场白话术',
+                        content: [
+                            { type: 'heading', text: '标准开场模板（30秒）' },
+                            { type: 'quote', text: '欢迎来到德曼空压机直播间！我是主播小李，专注空压机行业8年。今天给大家分享如何选购一台真正节能的空压机，帮您的工厂省电40%！直播间有专属优惠，记得点关注不迷路！' },
+                            { type: 'divider' },
+                            { type: 'heading', text: '开场三要素' },
+                            { type: 'bullet', text: '热情问候：欢迎进场的每一位观众，点名欢迎' },
+                            { type: 'bullet', text: '价值预告：今天分享什么干货，能解决什么问题' },
+                            { type: 'bullet', text: '福利吸引：直播间专属优惠，引导关注' },
+                            { type: 'divider' },
+                            { type: 'heading', text: '针对不同人群的开场' },
+                            { type: 'bullet', text: '工厂老板：关注节能降本，强调ROI和回本周期' },
+                            { type: 'bullet', text: '采购人员：关注性价比，强调品牌实力和售后' },
+                            { type: 'bullet', text: '技术人员：关注参数性能，强调技术创新' }
+                        ]
+                    },
+                    {
+                        title: '第二章：产品介绍话术',
+                        content: [
+                            { type: 'heading', text: 'FABE销售法则' },
+                            { type: 'bullet', text: 'F - Feature（特点）：这款采用永磁变频技术，德国进口主机' },
+                            { type: 'bullet', text: 'A - Advantage（优势）：比传统空压机节能40%，噪音低于65分贝' },
+                            { type: 'bullet', text: 'B - Benefit（利益）：每年可节省电费5-10万元，3个月回本' },
+                            { type: 'bullet', text: 'E - Evidence（证据）：宁波XX工厂使用一年后反馈，月均省2万电费' },
+                            { type: 'divider' },
+                            { type: 'heading', text: '核心卖点话术' },
+                            { type: 'bullet', text: '节能卖点：国家一级能效，工信部推荐节能产品' },
+                            { type: 'bullet', text: '静音卖点：图书馆级静音，符合工厂环保要求' },
+                            { type: 'bullet', text: '智能卖点：物联网远程监控，手机APP实时查看' },
+                            { type: 'bullet', text: '服务卖点：全国200+服务网点，2小时响应，终身维护' }
+                        ]
+                    },
+                    {
+                        title: '第三章：互动话术',
+                        content: [
+                            { type: 'heading', text: '提问式互动' },
+                            { type: 'bullet', text: '大家工厂现在用的是什么品牌的空压机？打在评论区' },
+                            { type: 'bullet', text: '有没有老板觉得现在空压机电费太高的？扣个1' },
+                            { type: 'bullet', text: '想知道自己的工厂能省多少电费的，留下功率大小' },
+                            { type: 'divider' },
+                            { type: 'heading', text: '福利式互动' },
+                            { type: 'bullet', text: '想要优惠价格的扣1，我看看有多少人' },
+                            { type: 'bullet', text: '准备了一份《空压机选型指南》，想要的打"想要"' },
+                            { type: 'bullet', text: '每10分钟抽一位送保养手册，大家积极互动' }
+                        ]
+                    },
+                    {
+                        title: '第四章：促单话术',
+                        content: [
+                            { type: 'heading', text: '促单时机' },
+                            { type: 'bullet', text: '痛点挖掘后：当观众表达需求时立即促单' },
+                            { type: 'bullet', text: '产品介绍后：展示完核心卖点趁热打铁' },
+                            { type: 'bullet', text: '互动热烈时：气氛好时推出限时优惠' },
+                            { type: 'divider' },
+                            { type: 'heading', text: '促单话术模板' },
+                            { type: 'quote', text: '王总，您看这款30KW的永磁变频空压机，完全能满足您工厂的需求。今天直播间的价格是19800元，比官网便宜3000元！而且送价值2000元的首保服务。这个价格只有今天，点击小风车留下联系方式，我给您发优惠券！' },
+                            { type: 'divider' },
+                            { type: 'heading', text: '小风车引导话术' },
+                            { type: 'bullet', text: '点击屏幕下方小风车，免费获取专属节能方案' },
+                            { type: 'bullet', text: '留下手机号，我们的工程师1小时内给您回电' },
+                            { type: 'bullet', text: '填写表单送《空压机节能改造案例集》' }
+                        ]
+                    }
+                ]
+            },
+            service: {
+                title: '客服话术手册',
+                sections: [
+                    {
+                        title: '第一章：售后咨询话术',
+                        content: [
+                            { type: 'heading', text: '报修接待话术' },
+                            { type: 'quote', text: '您好，德曼客服为您服务。请问您的设备型号是什么？故障现象是怎样的？我会为您安排最近的工程师上门检修。' },
+                            { type: 'divider' },
+                            { type: 'heading', text: '常见故障应对' },
+                            { type: 'bullet', text: '设备不启动：检查电源、急停开关、保险丝' },
+                            { type: 'bullet', text: '压力不足：检查用气量是否超标、管路是否漏气' },
+                            { type: 'bullet', text: '噪音过大：检查润滑油位、皮带松紧、固定螺丝' },
+                            { type: 'bullet', text: '温度过高：检查散热风扇、冷却器、环境温度' }
+                        ]
+                    },
+                    {
+                        title: '第二章：客户维护话术',
+                        content: [
+                            { type: 'heading', text: '定期回访话术' },
+                            { type: 'quote', text: '王总您好，我是德曼客服小李。您的空压机使用满半年了，运行还正常吗？提醒您该做保养了，我可以帮您预约工程师上门服务。' },
+                            { type: 'divider' },
+                            { type: 'heading', text: '保养提醒话术' },
+                            { type: 'bullet', text: '首次保养：设备运行500小时后需更换三滤和润滑油' },
+                            { type: 'bullet', text: '常规保养：每2000小时或3个月进行一次保养' },
+                            { type: 'bullet', text: '年度保养：全面检查各部件磨损情况，预防大修' }
+                        ]
+                    },
+                    {
+                        title: '第三章：投诉处理话术',
+                        content: [
+                            { type: 'heading', text: 'LEAF处理法则' },
+                            { type: 'bullet', text: 'L - Listen（倾听）：让客户说完，不打断' },
+                            { type: 'bullet', text: 'E - Empathize（共情）：理解客户情绪，表示歉意' },
+                            { type: 'bullet', text: 'A - Apologize（道歉）：为给客户带来的困扰道歉' },
+                            { type: 'bullet', text: 'F - Fix（解决）：给出具体解决方案和时间' },
+                            { type: 'divider' },
+                            { type: 'heading', text: '投诉处理示例' },
+                            { type: 'quote', text: '非常抱歉给您带来了不好的体验，我完全理解您的心情。请您放心，我们会在2小时内安排工程师上门，24小时内解决问题。这是我们的服务承诺。' }
+                        ]
+                    }
+                ]
+            }
+        };
+
+        function previewPPT() {
+            const modal = document.createElement('div');
+            modal.id = 'pptModal';
+            modal.className = 'modal';
+            modal.style.display = 'flex';
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 900px; width: 95%; max-height: 90vh; overflow: hidden;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h3 style="color: var(--color-neon-cyan);">
+                            <i class="fas fa-file-powerpoint"></i> ${PPT_CONTENT.title}
+                        </h3>
+                        <button onclick="closePPTModal()" style="background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer;">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div id="pptViewer" style="background: linear-gradient(135deg, #1a1f3a, #0a0e17); border-radius: 12px; padding: 40px; min-height: 400px; max-height: 60vh; overflow-y: auto;">
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px;">
+                        <button class="modal-btn cancel-btn" onclick="prevSlide()" id="prevBtn">
+                            <i class="fas fa-chevron-left"></i> 上一页
+                        </button>
+                        <span id="slideIndicator" style="color: var(--color-text-secondary);">1 / ${PPT_CONTENT.slides.length}</span>
+                        <button class="modal-btn submit-btn" onclick="nextSlide()" id="nextBtn">
+                            下一页 <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            window.currentSlideIndex = 0;
+            renderSlide(0);
+        }
+
+        function renderSlide(index) {
+            const viewer = document.getElementById('pptViewer');
+            const slide = PPT_CONTENT.slides[index];
+            let contentHTML = '';
+            slide.content.forEach(item => {
+                switch(item.type) {
+                    case 'heading':
+                        contentHTML += `<h4 style="color: var(--color-neon-cyan); margin: 20px 0 10px; font-size: 1.2rem;">${item.text}</h4>`;
+                        break;
+                    case 'bullet':
+                        contentHTML += `<div style="margin: 8px 0; padding-left: 20px; color: var(--color-text-secondary); position: relative;">
+                            <span style="position: absolute; left: 0; color: var(--color-neon-magenta);">•</span> ${item.text}
+                        </div>`;
+                        break;
+                    case 'quote':
+                        contentHTML += `<div style="background: rgba(157, 0, 255, 0.1); border-left: 3px solid var(--color-neon-magenta); padding: 15px 20px; margin: 15px 0; border-radius: 0 8px 8px 0; font-style: italic; color: var(--color-text-primary);">
+                            "${item.text}"
+                        </div>`;
+                        break;
+                    case 'check':
+                        contentHTML += `<div style="margin: 8px 0; padding-left: 25px; color: var(--color-text-secondary); position: relative;">
+                            <i class="fas fa-check-square" style="position: absolute; left: 0; color: var(--color-neon-green);"></i> ${item.text}
+                        </div>`;
+                        break;
+                    case 'divider':
+                        contentHTML += `<hr style="border: none; border-top: 1px solid rgba(255,255,255,0.1); margin: 20px 0;">`;
+                        break;
+                }
+            });
+            viewer.innerHTML = `
+                <div style="text-align: center; margin-bottom: 30px;">
+                    <h2 style="color: var(--color-neon-cyan); font-family: var(--font-heading); margin-bottom: 10px;">${slide.title}</h2>
+                    <div style="width: 60px; height: 3px; background: var(--gradient-primary); margin: 0 auto;"></div>
+                </div>
+                ${contentHTML}
+            `;
+            document.getElementById('slideIndicator').textContent = `${index + 1} / ${PPT_CONTENT.slides.length}`;
+            document.getElementById('prevBtn').disabled = index === 0;
+            document.getElementById('prevBtn').style.opacity = index === 0 ? '0.5' : '1';
+            document.getElementById('nextBtn').disabled = index === PPT_CONTENT.slides.length - 1;
+            document.getElementById('nextBtn').style.opacity = index === PPT_CONTENT.slides.length - 1 ? '0.5' : '1';
+        }
+
+        function nextSlide() {
+            if (window.currentSlideIndex < PPT_CONTENT.slides.length - 1) {
+                window.currentSlideIndex++;
+                renderSlide(window.currentSlideIndex);
+            }
+        }
+
+        function prevSlide() {
+            if (window.currentSlideIndex > 0) {
+                window.currentSlideIndex--;
+                renderSlide(window.currentSlideIndex);
+            }
+        }
+
+        function closePPTModal() {
+            const modal = document.getElementById('pptModal');
+            if (modal) modal.remove();
+        }
+
+        // 话术手册预览
+        let currentManualSection = 0;
+
+        function previewManual(type) {
+            const manual = MANUAL_CONTENT[type];
+            if (!manual) return;
+
+            const modal = document.createElement('div');
+            modal.id = 'pptModal';
+            modal.className = 'modal';
+            modal.style.display = 'flex';
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 900px; width: 95%; max-height: 90vh; overflow: hidden;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h3 style="color: var(--color-neon-cyan);">
+                            <i class="fas fa-book"></i> ${manual.title}
+                        </h3>
+                        <button onclick="closePPTModal()" style="background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer;">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div id="manualViewer" style="background: linear-gradient(135deg, #1a1f3a, #0a0e17); border-radius: 12px; padding: 40px; min-height: 400px; max-height: 60vh; overflow-y: auto;">
+                        <!-- 内容将在这里渲染 -->
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px;">
+                        <button class="modal-btn cancel-btn" onclick="prevManualSection()" id="prevBtn">
+                            <i class="fas fa-chevron-left"></i> 上一章
+                        </button>
+                        <span id="sectionIndicator" style="color: var(--color-text-secondary);">1 / ${manual.sections.length}</span>
+                        <button class="modal-btn submit-btn" onclick="nextManualSection()" id="nextBtn">
+                            下一章 <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+
+            window.currentManualType = type;
+            window.currentManualSection = 0;
+            renderManualSection(0);
+        }
+
+        function renderManualSection(index) {
+            const manual = MANUAL_CONTENT[window.currentManualType];
+            const viewer = document.getElementById('manualViewer');
+            const section = manual.sections[index];
+
+            let contentHTML = '';
+            section.content.forEach(item => {
+                switch(item.type) {
+                    case 'heading':
+                        contentHTML += `<h4 style="color: var(--color-neon-cyan); margin: 20px 0 10px; font-size: 1.2rem;">${item.text}</h4>`;
+                        break;
+                    case 'bullet':
+                        contentHTML += `<div style="margin: 8px 0; padding-left: 20px; color: var(--color-text-secondary); position: relative;">
+                            <span style="position: absolute; left: 0; color: var(--color-neon-magenta);">•</span> ${item.text}
+                        </div>`;
+                        break;
+                    case 'quote':
+                        contentHTML += `<div style="background: rgba(157, 0, 255, 0.1); border-left: 3px solid var(--color-neon-magenta); padding: 15px 20px; margin: 15px 0; border-radius: 0 8px 8px 0; font-style: italic; color: var(--color-text-primary);">
+                            "${item.text}"
+                        </div>`;
+                        break;
+                    case 'divider':
+                        contentHTML += `<hr style="border: none; border-top: 1px solid rgba(255,255,255,0.1); margin: 20px 0;">`;
+                        break;
+                }
+            });
+
+            viewer.innerHTML = `
+                <div style="text-align: center; margin-bottom: 30px;">
+                    <h2 style="color: var(--color-neon-cyan); font-family: var(--font-heading); margin-bottom: 10px;">${section.title}</h2>
+                    <div style="width: 60px; height: 3px; background: var(--gradient-primary); margin: 0 auto;"></div>
+                </div>
+                ${contentHTML}
+            `;
+
+            document.getElementById('sectionIndicator').textContent = `${index + 1} / ${manual.sections.length}`;
+            document.getElementById('prevBtn').disabled = index === 0;
+            document.getElementById('prevBtn').style.opacity = index === 0 ? '0.5' : '1';
+            document.getElementById('nextBtn').disabled = index === manual.sections.length - 1;
+            document.getElementById('nextBtn').style.opacity = index === manual.sections.length - 1 ? '0.5' : '1';
+        }
+
+        function nextManualSection() {
+            const manual = MANUAL_CONTENT[window.currentManualType];
+            if (window.currentManualSection < manual.sections.length - 1) {
+                window.currentManualSection++;
+                renderManualSection(window.currentManualSection);
+            }
+        }
+
+        function prevManualSection() {
+            if (window.currentManualSection > 0) {
+                window.currentManualSection--;
+                renderManualSection(window.currentManualSection);
+            }
+        }
+
+        // 键盘导航
+        window.addEventListener('keydown', (e) => {
+            if (document.getElementById('pptModal')) {
+                if (e.key === 'Escape') closePPTModal();
+                // PPT导航
+                if (window.currentSlideIndex !== undefined) {
+                    if (e.key === 'ArrowRight' || e.key === ' ') nextSlide();
+                    if (e.key === 'ArrowLeft') prevSlide();
+                }
+                // 手册导航
+                if (window.currentManualSection !== undefined && window.currentManualType) {
+                    if (e.key === 'ArrowRight' || e.key === ' ') nextManualSection();
+                    if (e.key === 'ArrowLeft') prevManualSection();
+                }
+            }
+        });
+
+        // ============================================
+        // 页面内容渲染
+        // ============================================
+        // 培训资料卡片已硬编码在HTML中，此函数保留用于未来动态加载
+        function renderTrainingMaterials() {
+            // 卡片已在HTML中静态定义，无需动态渲染
+        }
+
+        function renderTrainingSuggestions() {
+            const container = document.getElementById('trainingSuggestions');
+            if (!container) return;
+
+            container.innerHTML = `
+                <div class="suggestion-item"><div class="suggestion-icon"><i class="fas fa-video"></i></div><div class="suggestion-content"><h4>优秀直播录像库</h4><p>收集行业优秀直播案例，添加解说批注，供主播学习参考。</p></div></div>
+                <div class="suggestion-item"><div class="suggestion-icon"><i class="fas fa-chart-line"></i></div><div class="suggestion-content"><h4>数据解读指南</h4><p>教主播如何看懂直播数据，从数据中发现优化方向。</p></div></div>
+                <div class="suggestion-item"><div class="suggestion-icon"><i class="fas fa-question-circle"></i></div><div class="suggestion-content"><h4>常见问题Q&A</h4><p>整理直播中常见技术问题与解决方案，快速提升应变能力。</p></div></div>`;
+        }
+
+        function renderAnalysisSuggestions() {
+            const container = document.getElementById('analysisSuggestions');
+            if (!container) return;
+
+            container.innerHTML = `
+                <div class="suggestion-item"><div class="suggestion-icon"><i class="fas fa-bullseye"></i></div><div class="suggestion-content"><h4>最佳直播时间分析</h4><p>上传数据后，系统将自动分析各主播的黄金直播时间段。</p></div></div>
+                <div class="suggestion-item"><div class="suggestion-icon"><i class="fas fa-comments"></i></div><div class="suggestion-content"><h4>话术效果评估</h4><p>关联话术使用与转化数据，找出最有效的销售话术组合。</p></div></div>
+                <div class="suggestion-item"><div class="suggestion-icon"><i class="fas fa-user-friends"></i></div><div class="suggestion-content"><h4>主播能力矩阵</h4><p>构建主播能力雷达图，针对性提升各主播的薄弱环节。</p></div></div>`;
+        }
+
+        function renderDynamics() {
+            const container = document.getElementById('dynamicsGrid');
+            if (!container) return;
+
+            container.innerHTML = `
+                <div class="dynamic-card fade-in">
+                    <div class="dynamic-image trend"><i class="fas fa-chart-line"></i></div>
+                    <div class="dynamic-content"><h3 class="dynamic-title">行业趋势周报</h3><p class="dynamic-description">空压机行业抖音直播热度持续上升，技术讲解类内容互动率提升32%。</p><div class="dynamic-meta"><span><i class="far fa-calendar"></i> 2026-03-26</span><span>热度: 高</span></div></div>
+                </div>
+                <div class="dynamic-card fade-in">
+                    <div class="dynamic-image video"><i class="fas fa-video"></i></div>
+                    <div class="dynamic-content"><h3 class="dynamic-title">爆款视频拆解</h3><p class="dynamic-description">《空压机节能改造省电40%》获赞18.5万，成功要素：真实数据对比 + 客户证言。</p><div class="dynamic-meta"><span><i class="far fa-calendar"></i> 2026-03-25</span><span>点赞: 18.5万</span></div></div>
+                </div>
+                <div class="dynamic-card fade-in">
+                    <div class="dynamic-image innovation"><i class="fas fa-lightbulb"></i></div>
+                    <div class="dynamic-content"><h3 class="dynamic-title">内容创新方向</h3><p class="dynamic-description">工厂实拍+技术讲解组合内容增长迅速，观众对"眼见为实"内容信任度更高。</p><div class="dynamic-meta"><span><i class="far fa-calendar"></i> 2026-03-24</span><span>增长: 45%</span></div></div>
+                </div>
+                <div class="dynamic-card fade-in">
+                    <div class="dynamic-image competitor"><i class="fas fa-users"></i></div>
+                    <div class="dynamic-content"><h3 class="dynamic-title">竞争对手分析</h3><p class="dynamic-description">主要竞品加强直播频次，每周3-5场直播，重点推变频空压机解决方案。</p><div class="dynamic-meta"><span><i class="far fa-calendar"></i> 2026-03-23</span><span>竞品: 3家</span></div></div>
+                </div>`;
+        }
+
+        function renderFeatureSuggestions() {
+            const container = document.getElementById('featureSuggestions');
+            if (!container) return;
+
+            container.innerHTML = `
+                <div class="card fade-in">
+                    <div class="card-header"><div class="card-icon"><i class="fas fa-user-check"></i></div><h3 class="card-title">学习进度跟踪</h3></div>
+                    <p class="card-description">为每位主播设置学习任务，跟踪完成进度，考核学习效果，生成学习报告。</p>
+                    <span class="badge cyan">优先级: 高</span>
+                </div>
+                <div class="card fade-in">
+                    <div class="card-header"><div class="card-icon"><i class="fas fa-comments"></i></div><h3 class="card-title">互动问答社区</h3></div>
+                    <p class="card-description">建立主播交流社区，提问答疑，分享经验，形成知识共享的团队文化。</p>
+                    <span class="badge magenta">优先级: 中</span>
+                </div>
+                <div class="card fade-in">
+                    <div class="card-header"><div class="card-icon"><i class="fas fa-robot"></i></div><h3 class="card-title">AI话术优化</h3></div>
+                    <p class="card-description">基于直播数据，AI智能分析话术效果，提供优化建议，生成个性化话术模板。</p>
+                    <span class="badge green">优先级: 中</span>
+                </div>`;
+        }
+
+        // ============================================
+        // 用户认证
+        // ============================================
+        function showLoginModal() { document.getElementById('loginModal').style.display = 'flex'; }
+        function closeLoginModal() { document.getElementById('loginModal').style.display = 'none'; }
+        function showRegisterModal() { document.getElementById('registerModal').style.display = 'flex'; }
+        function closeRegisterModal() { document.getElementById('registerModal').style.display = 'none'; }
+
+        function login() {
+            const username = document.getElementById('loginUsername').value;
+            const role = document.getElementById('loginRole').value;
+            if (!username) { alert('请输入用户名'); return; }
+            AppState.currentUser = { username, role };
+            localStorage.setItem('beibei_user', JSON.stringify(AppState.currentUser));
+            updateUserUI();
+            closeLoginModal();
+            alert(`欢迎回来，${username}！`);
+        }
+
+        function register() {
+            const username = document.getElementById('registerUsername').value;
+            const role = document.getElementById('registerRole').value;
+            if (!username) { alert('请输入用户名'); return; }
+            AppState.currentUser = { username, role };
+            localStorage.setItem('beibei_user', JSON.stringify(AppState.currentUser));
+            updateUserUI();
+            closeRegisterModal();
+            alert(`注册成功，欢迎 ${username}！`);
+        }
+
+        function logout() {
+            AppState.currentUser = null;
+            localStorage.removeItem('beibei_user');
+            updateUserUI();
+            alert('已退出登录');
+        }
+
+        function checkLoginStatus() {
+            const stored = localStorage.getItem('beibei_user');
+            if (stored) { AppState.currentUser = JSON.parse(stored); updateUserUI(); }
+        }
+
+        function updateUserUI() {
+            const userInfo = document.getElementById('userInfo');
+            const authButtons = document.getElementById('authButtons');
+            const logoutBtn = document.getElementById('logoutBtn');
+            const userName = document.getElementById('userName');
+            const userRole = document.getElementById('userRole');
+
+            if (AppState.currentUser) {
+                userInfo.style.display = 'flex';
+                authButtons.style.display = 'none';
+                logoutBtn.style.display = 'block';
+                userName.textContent = AppState.currentUser.username;
+                userRole.textContent = AppState.currentUser.role === 'admin' ? '管理员' : '主播';
+            } else {
+                userInfo.style.display = 'none';
+                authButtons.style.display = 'flex';
+                logoutBtn.style.display = 'none';
+            }
+        }
+
+        // ============================================
+        // 动态更新
+        // ============================================
+        function showUpdateModal() { document.getElementById('updateModal').style.display = 'flex'; }
+        function closeUpdateModal() {
+            document.getElementById('updateModal').style.display = 'none';
+            document.getElementById('dynamicTitle').value = '';
+            document.getElementById('dynamicContent').value = '';
+            document.getElementById('dynamicType').value = 'trend';
+        }
+
+        function addDynamic() {
+            const title = document.getElementById('dynamicTitle').value.trim();
+            const content = document.getElementById('dynamicContent').value.trim();
+            const type = document.getElementById('dynamicType').value;
+
+            if (!title || !content) { alert('请填写标题和内容'); return; }
+
+            const icons = { trend: 'fa-chart-line', video: 'fa-video', innovation: 'fa-lightbulb', competitor: 'fa-users' };
+            const grid = document.getElementById('dynamicsGrid');
+            const newCard = document.createElement('div');
+            newCard.className = 'dynamic-card fade-in';
+            newCard.innerHTML = `
+                <div class="dynamic-image ${type}"><i class="fas ${icons[type]}"></i></div>
+                <div class="dynamic-content">
+                    <h3 class="dynamic-title">${title}</h3>
+                    <p class="dynamic-description">${content}</p>
+                    <div class="dynamic-meta"><span><i class="far fa-calendar"></i> ${new Date().toLocaleDateString()}</span><span><i class="fas fa-user-edit"></i> 手动添加</span></div>
+                </div>`;
+            grid.insertBefore(newCard, grid.firstChild);
+            closeUpdateModal();
+            alert('动态已添加成功！');
+        }
+
+        // ============================================
+        // 功能建议
+        // ============================================
+        function suggestFeature(feature) {
+            const suggestions = {
+                '数据API对接': '建议接入抖音开放平台API，实现数据自动同步，无需手动上传。',
+                '移动端APP': '开发移动端应用，方便主播随时随地查看资料和学习。',
+                '自动化报告': '每周自动生成主播表现报告，通过邮件或钉钉发送。',
+                '其他想法': '请描述您的具体需求，我们将评估实现可能性。'
+            };
+
+            const message = suggestions[feature] || '感谢您的建议！我们会认真考虑这个功能。';
+            alert(`功能建议: ${feature}\n\n${message}`);
+
+            if (feature === '其他想法') {
+                const userIdea = prompt('请描述您的功能想法：');
+                if (userIdea) alert(`已记录您的想法：${userIdea}\n感谢您的宝贵建议！`);
+            }
+        }
+
+        // ============================================
+        // 文件下载
+        // ============================================
+        function downloadFile(filename) {
+            alert(`模拟下载: ${filename}\n实际使用中，文件将从服务器下载。`);
+        }
+
+        // ============================================
+        // 工具函数
+        // ============================================
+        function initSmoothScroll() {
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const targetId = this.getAttribute('href');
+                    if (targetId === '#') return;
+                    const targetElement = document.querySelector(targetId);
+                    if (targetElement) window.scrollTo({ top: targetElement.offsetTop - 100, behavior: 'smooth' });
+                });
+            });
+        }
+
+        // ============================================
+        // PWA 安装提示
+        // ============================================
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            const installBanner = document.getElementById('installPWA');
+            if (installBanner) installBanner.style.display = 'block';
+        });
+
+        function installPWA() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') console.log('用户接受安装 PWA');
+                    else console.log('用户拒绝安装 PWA');
+                    deferredPrompt = null;
+                    hidePWAInstall();
+                });
+            }
+        }
+
+        function hidePWAInstall() { document.getElementById('installPWA').style.display = 'none'; }
+        window.addEventListener('appinstalled', () => { console.log('PWA 已安装'); hidePWAInstall(); deferredPrompt = null; });
+
+        // ============================================
+        // 1. 直播排班管理功能
+        // ============================================
+        function addSchedule() {
+            alert('添加排班功能\n\n可选择：\n• 主播人员\n• 直播时段\n• 直播账号\n• 备注信息');
+        }
+
+        // ============================================
+        // 2. 话术评分系统功能
+        // ============================================
+        function handleScriptUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            // 模拟上传和评分
+            const btn = event.target.previousElementSibling;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> AI分析中...';
+
+            setTimeout(() => {
+                btn.innerHTML = originalText;
+                alert(`文件 "${file.name}" 上传成功！\n\nAI正在分析话术质量...\n预计需要 10-30 秒完成评分`);
+            }, 1500);
+        }
+
+        // ============================================
+        // 4. 实时预警中心功能
+        // ============================================
+        function viewDetail(type) {
+            const details = {
+                cost: '获客成本详情\n\n虞瑜 03-25 21:00场次\n• 投流费用：¥235\n• 留资数：1条\n• 获客成本：¥235\n\n建议：\n1. 优化小风车引导话术\n2. 调整投放定向\n3. 复盘直播回放找出问题',
+                views: '观看人数分析\n\n近3天下午场数据对比：\n• 03-23：412人\n• 03-24：258人\n• 03-25：341人\n\n平均下降35%，建议：\n1. 优化直播封面\n2. 调整标题关键词\n3. 增加互动环节',
+                clicks: '小风车点击率分析\n\n王浩宇 03-26 早场\n• 观看人数：1334人\n• 组件点击：1次\n• 点击率：0.07%\n\n建议：\n1. 增加引导话术频次\n2. 优化小风车利益点\n3. 使用倒计时制造紧迫感',
+                competitor: '竞品动态\n\n某竞品近期动作：\n• 增加了早场直播频次\n• 推出了限时优惠话术\n• 在江浙沪地区加大投放\n\n建议：\n1. 关注其话术策略\n2. 分析其爆款内容\n3. 制定差异化策略'
+            };
+            alert(details[type] || '详情加载中...');
+        }
+
+        // ============================================
+        // 5. 知识库系统功能
+        // ============================================
+        function searchKnowledge() {
+            const query = document.getElementById('knowledgeSearch').value;
+            if (!query.trim()) {
+                alert('请输入搜索关键词');
+                return;
+            }
+            alert(`正在搜索 "${query}"...\n\n找到 5 个相关结果`);
+        }
+
+        // 知识库分类筛选
+        document.querySelectorAll('.category-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+
+                const category = this.dataset.category;
+                const cards = document.querySelectorAll('.knowledge-card');
+
+                cards.forEach(card => {
+                    if (category === 'all' || card.dataset.category === category) {
+                        card.style.display = 'block';
+                    } else {
+                        card.style.display = 'none';
+                    }
+                });
+            });
+        });
+
+        // 知识库卡片点击
+        document.querySelectorAll('.knowledge-card').forEach(card => {
+            card.addEventListener('click', function() {
+                const title = this.querySelector('h4').textContent;
+                alert(`查看详情：${title}\n\n功能开发中...\n将展示完整内容和相关推荐`);
+            });
+        });
+    </script>
+</body>
+</html>
